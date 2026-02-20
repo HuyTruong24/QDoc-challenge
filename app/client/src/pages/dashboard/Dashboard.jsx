@@ -1,6 +1,6 @@
 import React from 'react'
 
-function Home() {
+function Dashboard() {
   return (
       <main className="pt-24 px-6 max-w-4xl mx-auto">
         
@@ -70,4 +70,4 @@ function Home() {
   )
 }
 
-export default Home
+export default Dashboard
