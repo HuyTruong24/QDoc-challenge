@@ -19,7 +19,7 @@ Clinics struggle with:
 - Tracking booster timelines
 
 - Reaching patients at the right time
- 
+
 - Preventing missed immunizations
 
 ## The Challenge
