@@ -1,6 +1,8 @@
 // app/client/src/components/chat/ChatWidget.jsx
 import React, { useMemo, useState } from "react";
 import { api } from "../../api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const SUGGESTIONS = [
   "Why is HPV overdue?",
@@ -62,7 +64,11 @@ export default function ChatWidget({ profileId = "p1" }) {
               color: m.role === "user" ? "#fff" : "#111"
             }}
           >
-            {m.text}
+            <div style={styles.markdown}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {m.text}
+              </ReactMarkdown>
+            </div>
           </div>
         ))}
         {loading ? <div style={{ fontSize: 12, opacity: 0.6 }}>Assistant is typing…</div> : null}
@@ -97,5 +103,6 @@ const styles = {
   bubble: { maxWidth: "85%", padding: "10px 12px", borderRadius: 14, fontSize: 14, lineHeight: 1.25 },
   inputRow: { display: "flex", gap: 10, marginTop: 10 },
   input: { flex: 1, padding: "10px 12px", borderRadius: 10, border: "1px solid #ddd" },
-  button: { padding: "10px 12px", borderRadius: 10, border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer" }
+  button: { padding: "10px 12px", borderRadius: 10, border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer" },
+  markdown: { fontSize: 14}
 };

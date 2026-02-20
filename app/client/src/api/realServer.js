@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8787";
 
 async function request(path, { method = "GET", body } = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -15,21 +15,12 @@ async function request(path, { method = "GET", body } = {}) {
 }
 
 export const api = {
-  getClinicDashboard: (clinicId) =>
-    request(`/clinic/dashboard?clinicId=${encodeURIComponent(clinicId)}`),
-
-  recordDose: (payload) =>
-    request(`/clinic/recordDose`, { method: "POST", body: payload }),
-
-  getNearbyClinics: (lat, lng, vaccineKey) =>
-    request(
-      `/clinics/nearby?lat=${lat}&lng=${lng}${
-        vaccineKey ? `&vaccineKey=${encodeURIComponent(vaccineKey)}` : ""
-      }`
-    ),
-
   chat: (profileId, message) =>
     request(`/chat`, { method: "POST", body: { profileId, message } }),
 
+  // leave these pointing nowhere for now (you’re still using mock for map/dashboard)
+  getClinicDashboard: async () => { throw new Error("Not connected"); },
+  recordDose: async () => { throw new Error("Not connected"); },
+  getNearbyClinics: async () => { throw new Error("Not connected"); },
   getDefaultClinicId: () => "clinic_demo_1"
 };

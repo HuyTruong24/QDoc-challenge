@@ -1,3 +1,5 @@
+const CHAT_BASE = import.meta.env.VITE_CHAT_BASE_URL || "http://localhost:8787";
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 
@@ -68,6 +70,15 @@ const clinics = [
   }
 ];
 
+async function chatReal(profileId, message) {
+  const res = await fetch(`${CHAT_BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profileId, message })
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+  }
 
 
 export const api = {
@@ -134,32 +145,9 @@ export const api = {
    * @param {string} profileId
    * @param {string} message
    */
+  // replace mock chat() with:
   async chat(profileId, message) {
-    await sleep(350);
-
-    const lower = String(message || "").toLowerCase();
-    let reply =
-      `For profile ${profileId}, I can help explain vaccines and next steps. `;
-
-    if (lower.includes("why") && lower.includes("hpv")) {
-      reply +=
-        "HPV is recommended to prevent infections that can lead to certain cancers. If it's marked due/overdue, it's usually based on age and previous doses.";
-    } else if (lower.includes("tdap")) {
-      reply +=
-        "Tdap is commonly due on a schedule (including boosters). If you're overdue, booking soon can help you stay protected.";
-    } else if (lower.includes("where") || lower.includes("clinic")) {
-      reply +=
-        "You can use the map to find nearby clinics that offer the vaccine you need. Select a vaccine filter to narrow results.";
-    } else {
-      reply +=
-        "Tell me which vaccine you're asking about (e.g., HPV, Tdap, Flu) and I’ll explain the reason and what to do next.";
-    }
-
-    return {
-      reply,
-      disclaimer:
-        "Demo response only. This is not medical advice—please consult a healthcare professional."
-    };
+    return chatReal(profileId, message);
   },
 
   getDefaultClinicId() {
