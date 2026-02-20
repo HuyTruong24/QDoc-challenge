@@ -2,17 +2,45 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import { AuthProvider } from './context/AuthContext'
 
-
+// placeholder pages
+function PatientHome() { return <div style={{ padding: 16 }}>Patient Home</div>; }
+function ClinicHome() { return <div style={{ padding: 16 }}>Clinic Dashboard</div>; }
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<div>Home Page</div>} />
-        <Route path="/about" element={<div>About Page</div>} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/patient" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          <Route
+            path="/patient"
+            element={
+              <ProtectedRoute>
+                <PatientHome />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/clinic"
+            element={
+              <ProtectedRoute>
+                <ClinicHome />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+
   )
 }
 
