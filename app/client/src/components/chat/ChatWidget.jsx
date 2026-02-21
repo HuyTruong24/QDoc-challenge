@@ -30,7 +30,7 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
 
     try {
       const res = await api.chat(profileId, trimmed, {profile, eligibility});
-      setMessages((m) => [...m, { role: "assistant", text: res.reply }]);
+      setMessages((m) => [...m, { role: "assistant", text: res.answer }]);
     } catch (e) {
       setMessages((m) => [...m, { role: "assistant", text: e.message || "Chat failed." }]);
     } finally {
