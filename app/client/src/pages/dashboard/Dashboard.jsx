@@ -11,6 +11,8 @@ const EMAILJS_SERVICE_ID = "service_em93nf8";
 const EMAILJS_TEMPLATE_ID = "template_4crvvca";
 const EMAILJS_PUBLIC_KEY = "U_wAcJ6IGtZLCbELK";
 
+import { sendTestSms } from "../../backend/sendTestSms";
+
 const DAY_OPTIONS = [1, 7, 14, 30, 60];
 
 const UI_STATUS = {
@@ -57,6 +59,28 @@ function coerceArray(result) {
   if (Array.isArray(result)) return result;
   if (result && typeof result === "object") return Object.values(result);
   return [];
+}
+
+function buildShortSms(toName, daysWindow, reminderItems) {
+  const top = reminderItems.slice(0, 3); // keep short
+  const lines = top.map((v) => {
+    const remaining = v.daysUntil <= 0 ? "DUE" : `${v.daysUntil}d`;
+    return `${v.name} ${v.duePretty} (${remaining})`;
+  });
+
+  const more = reminderItems.length > top.length ? ` +${reminderItems.length - top.length} more` : "";
+  return `KeepMeAlive: Hi ${toName}. Next ${daysWindow}d: ${lines.join(" | ")}${more}`;
+}
+
+function buildSmsMessage({ toName, daysWindow, reminderItems }) {
+  const top = reminderItems.slice(0, 4); // keep SMS short
+  const lines = top.map((v) => {
+    const remaining = v.daysUntil <= 0 ? "DUE/OVERDUE" : `${v.daysUntil}d`;
+    return `- ${v.name}: ${v.duePretty} (${remaining})`;
+  });
+
+  const more = reminderItems.length > top.length ? `\n+${reminderItems.length - top.length} more…` : "";
+  return `KeepMeAlive: Hi ${toName}! Vaccines due in next ${daysWindow} days:\n${lines.join("\n")}${more}`;
 }
 
 function statusPillStyle(status) {
@@ -515,20 +539,53 @@ export default function Dashboard() {
               <button
                 type="button"
                 style={styles.primaryBlueBtn}
-                onClick={() => {
-                  const phone = chatContext?.profile?.phoneNumber;
+                onClick={async () => {
+                  const toName = userDoc?.displayName || titleName || "User";
+                  const toPhone = (chatContext?.profile?.phoneNumber || userDoc?.phoneNumber || "").trim();
+
+                  if (!toPhone) {
+                    alert("No phone number found for this account.");
+                    return;
+                  }
 
                   if (!remindersEnabled) {
                     alert("Reminders are disabled. Turn them on to send reminders.");
                     return;
                   }
 
-                  if (!phone) {
-                    alert("No phone number found. Add one to your profile first.");
+                  const all = coerceArray(userRuleEngineResult?.result).map((item, idx) => {
+                    const vaccineKey = String(item?.vaccineKey ?? "").trim();
+                    const dueDate = item?.dueDate ?? null;
+
+                    const name =
+                      VACCINES[vaccineKey] ||
+                      item?.displayName ||
+                      vaccineKey ||
+                      `Vaccine ${idx + 1}`;
+
+                    const status = getUiStatus(item?.status, dueDate);
+                    const du = daysUntil(dueDate);
+
+                    return { id: vaccineKey || idx, name, dueDate, duePretty: formatDatePretty(dueDate), status, daysUntil: du };
+                  });
+
+                  const reminderItems = all
+                    .filter((r) => r.dueDate && r.status !== UI_STATUS.NOT_ELIGIBLE && r.status !== UI_STATUS.COMPLETED && r.daysUntil != null && r.daysUntil <= days)
+                    .sort((a, b) => (a.daysUntil ?? 999999) - (b.daysUntil ?? 999999));
+
+                  if (!reminderItems.length) {
+                    alert(`No vaccines due in the next ${days} day(s).`);
                     return;
                   }
 
-                  alert(`📱 SMS simulated to ${phone}: ${reminderTiming}`);
+                  const message = buildShortSms(toName, days, reminderItems);
+
+                  const resp = await sendTestSms(toPhone, message);
+                  if (!resp.ok) {
+                    alert(`❌ SMS failed: ${resp.error}`);
+                    return;
+                  }
+                  alert(`✅ SMS sent! (sid: ${resp.sid || "n/a"})`);
                 }}
               >
                 📱 Send Test SMS

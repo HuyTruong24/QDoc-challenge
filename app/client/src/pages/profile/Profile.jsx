@@ -247,6 +247,7 @@ function Select(props) {
 }
 
 function Profile() {
+  const navigate = useNavigate(); // ✅ add
   const { user, userDoc, setUserRuleEngineResult, setUserDoc } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(true);
@@ -466,6 +467,7 @@ function Profile() {
       // setUserRuleEngineResult(res); // ✅ now it’s global immediately
 
       setStatus("Profile saved.");
+      setTimeout(() => navigate("/dashboard"), 400);
     } catch (err) {
       setError(err?.message || "Failed to save profile");
     } finally {
