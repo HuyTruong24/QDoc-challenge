@@ -3,6 +3,13 @@ import React, { useMemo, useState } from "react";
 import ChatWidget from "../../components/chat/ChatWidget";
 import { useAuth } from "../../hooks/useAuth";
 import { VACCINES } from "../../../../contracts/constants";
+import { FaRobot } from "react-icons/fa";
+
+import emailjs from "@emailjs/browser";
+
+const EMAILJS_SERVICE_ID = "service_em93nf8";
+const EMAILJS_TEMPLATE_ID = "template_4crvvca";
+const EMAILJS_PUBLIC_KEY = "U_wAcJ6IGtZLCbELK";
 
 const DAY_OPTIONS = [1, 7, 14, 30, 60];
 
@@ -65,6 +72,34 @@ function statusPillStyle(status) {
   if (status === UI_STATUS.COMPLETED) return { background: "rgba(220,252,231,0.65)", color: "#047857", border: "1px solid rgba(34,197,94,0.25)" };
   return { background: "rgba(241,245,249,0.95)", color: "#475569", border: "1px solid rgba(15,23,42,0.10)" };
 }
+function reminderTimingToDays(timing) {
+  const raw = String(timing || "").toLowerCase();
+  if (raw.includes("on due")) return 0;
+  if (raw.includes("1")) return 1;
+  if (raw.includes("7")) return 7;
+  if (raw.includes("14")) return 14;
+  return 7; // default
+}
+
+function buildReminderItems(allItems, reminderDays) {
+  // allItems = mapped rows with { name, dueDate, daysUntil, status }
+  // We remind when daysUntil matches reminderDays (or overdue when reminderDays=0, you can decide)
+  return allItems
+    .filter((r) => {
+      if (!r?.dueDate) return false;
+      if (r.status === UI_STATUS.NOT_ELIGIBLE) return false;
+      if (r.status === UI_STATUS.COMPLETED) return false;
+      if (r.daysUntil == null) return false;
+
+      // If "on due date" (0), match today (0) and overdue (negative) if you want
+      if (reminderDays === 0) return r.daysUntil <= 0;
+
+      // Otherwise only match exact day window (e.g., 7 days before)
+      return r.daysUntil === reminderDays;
+    })
+    .sort((a, b) => (a.daysUntil ?? 9999) - (b.daysUntil ?? 9999));
+}
+
 
 export default function Dashboard() {
   const {
@@ -165,22 +200,14 @@ export default function Dashboard() {
             <span style={{ color: "#0f172a", fontWeight: 800 }}>{titleName}</span>
           </div>
 
-          {/* optional right links like V1/V2 */}
-          <div style={styles.topLinks}>
-            <button style={styles.linkBtn} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-              V1
-            </button>
-            <button style={styles.linkBtn} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-              V2
-            </button>
-          </div>
+
         </div>
 
         {/* Hero */}
         <div style={styles.hero}>
           <div style={styles.heroTitle}>KeepMeAlive</div>
           <div style={styles.heroSub}>
-            Know what you need, when you need it — and never miss a dose.
+            Know what you need, when you need it and most importantly WHY you need it.
           </div>
         </div>
 
@@ -285,9 +312,89 @@ export default function Dashboard() {
               <button
                 type="button"
                 style={styles.primaryBlueBtn}
-                onClick={() => {
-                  // Hook later to real email pipeline
-                  alert(`Test email simulated: ${reminderTiming} (enabled: ${remindersEnabled ? "yes" : "no"})`);
+                onClick={async () => {
+                  const toEmail = userDoc?.email || user?.email;
+                  const toName = userDoc?.displayName || titleName || "User";
+
+                  if (!toEmail) {
+                    alert("No email found for this account.");
+                    return;
+                  }
+
+                  if (!remindersEnabled) {
+                    alert("Reminders are disabled. Turn them on to send reminders.");
+                    return;
+                  }
+
+                  // Build list from ALL engine results
+                  const all = coerceArray(userRuleEngineResult?.result).map((item, idx) => {
+                    const vaccineKey = String(item?.vaccineKey ?? "").trim();
+                    const dueDate = item?.dueDate ?? null;
+
+                    const name =
+                      VACCINES[vaccineKey] ||
+                      item?.displayName ||
+                      vaccineKey ||
+                      `Vaccine ${idx + 1}`;
+
+                    const status = getUiStatus(item?.status, dueDate);
+                    const du = daysUntil(dueDate);
+
+                    return {
+                      id: vaccineKey || idx,
+                      name,
+                      dueDate,
+                      duePretty: formatDatePretty(dueDate),
+                      status,
+                      daysUntil: du,
+                    };
+                  });
+
+                  // ✅ Use the dropdown window: next X days
+                  const reminderItems = all
+                    .filter((r) => {
+                      if (!r.dueDate) return false;
+                      if (r.status === UI_STATUS.NOT_ELIGIBLE) return false;
+                      if (r.status === UI_STATUS.COMPLETED) return false;
+                      if (r.daysUntil == null) return false;
+                      return r.daysUntil <= days; // includes overdue
+                    })
+                    .sort((a, b) => (a.daysUntil ?? 999999) - (b.daysUntil ?? 999999));
+
+                  if (!reminderItems.length) {
+                    alert(`No vaccines due in the next ${days} day(s). Try a bigger window.`);
+                    return;
+                  }
+
+                  // ✅ Build plain text list AFTER reminderItems exists
+                  const vaccinesText = reminderItems
+                    .map((v) => {
+                      const remaining =
+                        v.daysUntil <= 0 ? "Due now / overdue" : `${v.daysUntil} day(s) remaining`;
+                      return `• ${v.name} — Due: ${v.duePretty} (${remaining})`;
+                    })
+                    .join("\n");
+
+                  try {
+                    await emailjs.send(
+                      EMAILJS_SERVICE_ID,
+                      EMAILJS_TEMPLATE_ID,
+                      {
+                        to_name: toName,
+                        to_email: toEmail,
+                        days_window: String(days),
+                        vaccine_count: String(reminderItems.length),
+                        vaccines_text: vaccinesText,
+                        sent_date: new Date().toLocaleString(),
+                      },
+                      { publicKey: EMAILJS_PUBLIC_KEY }
+                    );
+
+                    alert(`✅ Test email sent for vaccines due within next ${days} day(s)!`);
+                  } catch (e) {
+                    console.error(e);
+                    alert("❌ Failed to send email. Check EmailJS/Brevo settings.");
+                  }
                 }}
               >
                 ✉️ Send Test Email
@@ -301,7 +408,7 @@ export default function Dashboard() {
 
       {/* Floating chat button */}
       <button style={styles.chatFab} onClick={() => setChatOpen(true)} aria-label="Open chat">
-        💬
+        <FaRobot />
       </button>
 
       {/* Chat modal (matches the figma “popup”) */}
@@ -327,7 +434,7 @@ export default function Dashboard() {
         >
           <div style={styles.chatHeader}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={styles.chatIcon}>💬</div>
+              <div style={styles.chatIcon}><FaRobot /></div>
               <div>
                 <div style={{ color: "white", fontWeight: 850 }}>Health Assistant</div>
                 <div style={{ color: "rgba(219,234,254,0.95)", fontSize: 12 }}>
@@ -566,10 +673,16 @@ const styles = {
     border: "none",
     background: "#3b82f6",
     color: "white",
-    fontSize: 22,
     cursor: "pointer",
     boxShadow: "0 18px 40px rgba(2,6,23,0.18)",
     zIndex: 60,
+
+    display: "flex",
+    alignItems: "center",
+
+
+    justifyContent: "center",
+
   },
 
   chatModalWrap: { position: "fixed", inset: 0, zIndex: 70, transition: "opacity 160ms ease" },
@@ -604,8 +717,11 @@ const styles = {
     height: 40,
     borderRadius: 999,
     background: "rgba(255,255,255,0.18)",
-    display: "grid",
-    placeItems: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    lineHeight: 1,
+    fontSize: 18, // controls the robot size in header
   },
   chatClose: {
     width: 34,

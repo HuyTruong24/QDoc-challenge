@@ -6,7 +6,6 @@ import remarkGfm from "remark-gfm";
 
 const SUGGESTIONS = [
   "Why is HPV overdue?",
-  "Where can I get my flu shot?",
   "What happens if I miss a dose?",
   "Explain Tdap in simple terms",
 ];
@@ -66,10 +65,7 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
 
   return (
     <div style={styles.card}>
-      <div style={styles.headerRow}>
-        <div style={{ fontWeight: 800 }}>Assistant</div>
-        <div style={{ fontSize: 12, opacity: 0.65 }}>Profile: {profileId}</div>
-      </div>
+      
 
       <div style={styles.suggestions}>
         {SUGGESTIONS.map((s) => (
@@ -141,14 +137,14 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
         </button>
       </div>
 
-      <div style={{ fontSize: 12, opacity: 0.65, marginTop: 8 }}>{disclaimer}</div>
+      <div style={{ fontSize: 12, opacity: 0.65, marginTop: 8, color: "#111" }}>{disclaimer}</div>
     </div>
   );
 }
 
 const styles = {
   card: {
-    background: "#fff",
+    background: "#e8ebee",
     border: "1px solid #eee",
     borderRadius: 14,
     padding: 14,
