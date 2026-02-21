@@ -15,8 +15,8 @@ function NavigationBar({ isOpen, onClose, sidebarWidth = 260 }) {
 
   const navItems = [
     { to: "/dashboard", label: "Dashboard", icon: <CgHome /> },
-    { to: "/vaccination-history", label: "Vax History", icon: <FaHistory /> },
-    { to: "/profile", label: "Profile", icon: <CgProfile /> },
+    { to: "/vaccination-history", label: "Vaccination History", icon: <FaHistory /> },
+    { to: "/profile", label: "Update Profile", icon: <CgProfile /> },
     { to: "/vaccination-eligibility", label: "Vaccination Eligibility", icon: <TbVaccineBottle /> },
   ];
 
