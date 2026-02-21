@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AppLayout from "./components/AppLayout";
 import { AuthProvider } from "./context/AuthContext";
 import Profile from "./pages/profile/Profile";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -21,43 +22,42 @@ function App() {
           <Route path="/register" element={<Register />} />
 
           <Route
-            path="/profile"
             element={
               <ProtectedRoute>
-                <Profile />
+                <AppLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route
+              path="/profile"
+              element={<Profile />}
+            />
+
+            <Route
+              path="/patient"
+              element={<Navigate to="/profile" replace />}
+            />
+
+            <Route
+              path="/dashboard"
+              element={<Dashboard />}
+            />
+
+            <Route
+              path="/vaccination-history"
+              element={<VaccinationHistory />}
+            />
+
+            <Route
+              path="/clinic"
+              element={<ClinicHome />}
+            />
+          </Route>
 
           <Route
-            path="/patient"
-            element={<Navigate to="/profile" replace />}
-          />
-
-          <Route
-            path="/dashboard"
+            path="*"
             element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/vaccination-history"
-            element={
-              <ProtectedRoute>
-                <VaccinationHistory />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/clinic"
-            element={
-              <ProtectedRoute>
-                <ClinicHome />
-              </ProtectedRoute>
+              <Navigate to="/dashboard" replace />
             }
           />
         </Routes>
