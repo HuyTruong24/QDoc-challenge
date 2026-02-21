@@ -11,6 +11,7 @@ const INITIAL_FORM = {
   chronicDiseases: [""],
   vaccinationHistory: [{ vaccineName: "", date: "" }],
   phoneNumber: "",
+  postalCode: "",
 };
 
 function toStringArray(value) {
@@ -53,6 +54,20 @@ function toVaccineArray(value) {
   }
 
   return [];
+}
+
+function formatCanadianPostalCode(value) {
+  const cleaned = String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 6);
+
+  if (cleaned.length <= 3) return cleaned;
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3)}`;
+}
+
+function isValidCanadianPostalCode(value) {
+  return /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(String(value || "").trim());
 }
 
 function Field({ label, children }) {
@@ -107,6 +122,9 @@ function Select(props) {
         boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
         fontSize: 14,
         color: "#0f172a",
+        appearance: "none",
+        WebkitAppearance: "none",
+        MozAppearance: "none",
       }}
       onFocus={(e) => {
         e.currentTarget.style.border = "1px solid rgba(15,23,42,0.25)";
@@ -156,6 +174,7 @@ function Profile() {
             ? loadedVaccines
             : [{ vaccineName: "", date: "" }],
           phoneNumber: profile.phoneNumber || "",
+          postalCode: profile.postalCode || "",
         });
       } catch (err) {
         setError(err?.message || "Failed to load profile");
@@ -169,6 +188,12 @@ function Profile() {
 
   function onChange(e) {
     const { name, value } = e.target;
+
+    if (name === "postalCode") {
+      setForm((prev) => ({ ...prev, postalCode: formatCanadianPostalCode(value) }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
@@ -236,6 +261,14 @@ function Profile() {
     setError("");
 
     try {
+      const formattedPostalCode = formatCanadianPostalCode(form.postalCode);
+
+      if (!isValidCanadianPostalCode(formattedPostalCode)) {
+        setError('Postal code must be in the format "R3T 6G8".');
+        setSaving(false);
+        return;
+      }
+
       const chronicDiseases = form.chronicDiseases
         .map((item) => item.trim())
         .filter(Boolean);
@@ -259,6 +292,7 @@ function Profile() {
             chronicDiseases,
             vaccinationHistory,
             phoneNumber: form.phoneNumber.trim(),
+            postalCode: formattedPostalCode,
             updatedAt: serverTimestamp(),
           },
         },
@@ -297,7 +331,6 @@ function Profile() {
 
   return (
     <div style={styles.page}>
-      {/* Top Bar */}
       <div style={styles.topbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={styles.logo}>P</div>
@@ -357,6 +390,25 @@ function Profile() {
                   />
                 </Field>
               </div>
+
+              <div style={styles.formGrid2}>
+                <Field label="Postal code">
+                  <Input
+                    type="text"
+                    name="postalCode"
+                    value={form.postalCode}
+                    onChange={onChange}
+                    placeholder="R3T 6G8"
+                    maxLength={7}
+                    autoComplete="postal-code"
+                    pattern="[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d"
+                    title='Enter postal code in format "R3T 6G8"'
+                    required
+                  />
+                </Field>
+
+                <div />
+              </div>
             </div>
 
             {/* DOB + Gender */}
@@ -376,12 +428,7 @@ function Profile() {
                 </Field>
 
                 <Field label="Gender">
-                  <Select
-                    name="gender"
-                    value={form.gender}
-                    onChange={onChange}
-                    required
-                  >
+                  <Select name="gender" value={form.gender} onChange={onChange} required>
                     <option value="" disabled>
                       Select gender
                     </option>
@@ -504,11 +551,9 @@ function Profile() {
               </div>
             </div>
 
-            {/* Status / Error */}
             {error ? <div style={styles.errorBox}>{error}</div> : null}
             {!error && status ? <div style={styles.successBox}>{status}</div> : null}
 
-            {/* Footer action */}
             <div style={styles.footerActions}>
               <button type="submit" disabled={saving} style={styles.primaryBtn}>
                 {saving ? "Saving..." : "Save Profile"}
