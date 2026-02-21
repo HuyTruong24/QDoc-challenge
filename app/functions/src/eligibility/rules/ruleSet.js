@@ -1,4 +1,4 @@
-{
+export const RULE_SET = {
   "schemaVersion": "1.0",
   "generatedAt": "2026-02-20",
   "statusModel": {
