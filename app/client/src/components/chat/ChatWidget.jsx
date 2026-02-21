@@ -110,7 +110,7 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
       <div style={styles.inputArea}>
         <textarea
           style={styles.textarea}
-          placeholder="Ask QDoc..."
+          placeholder="Ask Assistant..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
