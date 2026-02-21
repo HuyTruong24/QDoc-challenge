@@ -9,8 +9,8 @@ const INITIAL_FORM = {
   patientName: "",
   dateOfBirth: "",
   gender: "",
-  chronicDiseases: [""],
-  vaccinationHistory: [{ vaccineName: "", date: "" }],
+  chronicDiseases: [""], // UI uses risk-tag keys in this dropdown
+  vaccinationHistory: [{ vaccineName: "", date: "" }], // UI stores vaccine key in vaccineName field
   phoneNumber: "",
   postalCode: "",
 };
@@ -34,17 +34,21 @@ const RISK_LABEL_TO_KEY = Object.fromEntries(
 function coerceVaccineKey(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
-  if (Object.prototype.hasOwnProperty.call(VACCINES, raw)) return raw;            // already a key
-  if (Object.prototype.hasOwnProperty.call(VACCINE_LABEL_TO_KEY, raw)) return VACCINE_LABEL_TO_KEY[raw]; // label -> key
-  return raw; // unknown, keep as-is so user doesn’t lose it
+  if (Object.prototype.hasOwnProperty.call(VACCINES, raw)) return raw; // already key
+  if (Object.prototype.hasOwnProperty.call(VACCINE_LABEL_TO_KEY, raw)) {
+    return VACCINE_LABEL_TO_KEY[raw]; // label -> key
+  }
+  return raw; // preserve unknown
 }
 
 function coerceRiskTagKey(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
-  if (Object.prototype.hasOwnProperty.call(RISK_TAGS, raw)) return raw;           // already a key
-  if (Object.prototype.hasOwnProperty.call(RISK_LABEL_TO_KEY, raw)) return RISK_LABEL_TO_KEY[raw]; // label -> key
-  return raw; // unknown, keep as-is
+  if (Object.prototype.hasOwnProperty.call(RISK_TAGS, raw)) return raw; // already key
+  if (Object.prototype.hasOwnProperty.call(RISK_LABEL_TO_KEY, raw)) {
+    return RISK_LABEL_TO_KEY[raw]; // label -> key
+  }
+  return raw; // preserve unknown
 }
 
 function uniqueNonEmptyStrings(arr) {
@@ -80,8 +84,11 @@ function toVaccineArray(value) {
           return { vaccineName: item.trim(), date: "" };
         }
         if (item && typeof item === "object") {
+          // supports old shape (vaccineName/name) and new shape (vaccineKey)
           return {
-            vaccineName: String(item.vaccineName ?? item.name ?? "").trim(),
+            vaccineName: String(
+              item.vaccineName ?? item.vaccineKey ?? item.name ?? ""
+            ).trim(),
             date: String(item.date ?? item.dateAdministered ?? "").trim(),
           };
         }
@@ -113,6 +120,45 @@ function formatCanadianPostalCode(value) {
 
 function isValidCanadianPostalCode(value) {
   return /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/.test(String(value || "").trim());
+}
+
+function splitName(fullName) {
+  const parts = String(fullName || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+}
+
+function normalizeGenderForDb(value) {
+  const raw = String(value || "").trim();
+
+  // supports current UI labels and also already-normalized values
+  const upper = raw.toUpperCase();
+  if (upper === "MALE") return "MALE";
+  if (upper === "FEMALE") return "FEMALE";
+  if (upper === "OTHER") return "OTHER";
+  if (upper === "PREFER NOT TO SAY" || upper === "PREFER_NOT_TO_SAY") {
+    return "PREFER_NOT_TO_SAY";
+  }
+
+  return upper.replace(/\s+/g, "_");
+}
+
+function dbGenderToUi(value) {
+  const v = String(value || "").trim().toUpperCase();
+  if (v === "MALE") return "Male";
+  if (v === "FEMALE") return "Female";
+  if (v === "OTHER") return "Other";
+  if (v === "PREFER_NOT_TO_SAY") return "Prefer not to say";
+  return value || "";
 }
 
 function Field({ label, children }) {
@@ -190,6 +236,7 @@ function Profile() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [existingUserDoc, setExistingUserDoc] = useState(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -201,21 +248,42 @@ function Profile() {
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
         if (!snap.exists()) {
+          setExistingUserDoc(null);
           setLoading(false);
           return;
         }
 
         const data = snap.data();
-        const profile = data?.profile || {};
-        const loadedChronicDiseases = toStringArray(profile.chronicDiseases).map(coerceRiskTagKey);
+        setExistingUserDoc(data);
 
-        const loadedVaccines = toVaccineArray(profile.vaccinationHistory).map((v) => ({ ...v, vaccineName: coerceVaccineKey(v.vaccineName), }));
+        // Backward-compatible loader:
+        // 1) old nested shape: data.profile.*
+        // 2) new top-level shape: data.*
+        const profile = data?.profile || data || {};
+
+        const patientNameFromNewShape = [profile.firstName, profile.lastName]
+          .map((v) => String(v || "").trim())
+          .filter(Boolean)
+          .join(" ");
+
+        const loadedRiskTags = toStringArray(
+          profile.riskTags ?? profile.chronicDiseases ?? profile.chronicConditions
+        ).map(coerceRiskTagKey);
+
+        const loadedVaccines = toVaccineArray(profile.vaccinationHistory).map((v) => ({
+          ...v,
+          vaccineName: coerceVaccineKey(v.vaccineName),
+        }));
 
         setForm({
-          patientName: profile.patientName || data.displayName || "",
+          patientName:
+            profile.patientName ||
+            patientNameFromNewShape ||
+            data.displayName ||
+            "",
           dateOfBirth: profile.dateOfBirth || "",
-          gender: profile.gender || "",
-          chronicDiseases: loadedChronicDiseases.length ? loadedChronicDiseases : [""],
+          gender: dbGenderToUi(profile.gender || ""),
+          chronicDiseases: loadedRiskTags.length ? loadedRiskTags : [""],
           vaccinationHistory: loadedVaccines.length
             ? loadedVaccines
             : [{ vaccineName: "", date: "" }],
@@ -315,33 +383,56 @@ function Profile() {
         return;
       }
 
-      const chronicDiseases = uniqueNonEmptyStrings(form.chronicDiseases);
+      const { firstName, lastName } = splitName(form.patientName);
+
+      // UI chronicDiseases dropdown is actually selecting risk tags
+      const riskTags = uniqueNonEmptyStrings(form.chronicDiseases).map(coerceRiskTagKey);
+
+      // Your requested rule:
+      // everything in riskTags should ALSO be in chronicConditions
+      // (So chronicConditions mirrors/includes risk tags.)
+      const chronicConditions = uniqueNonEmptyStrings(riskTags);
 
       const vaccinationHistory = form.vaccinationHistory
         .map((item) => ({
-          vaccineName: String(item.vaccineName ?? "").trim(), // now stores the KEY (e.g., "MMR")
-          date: item.date,
+          vaccineKey: coerceVaccineKey(item.vaccineName), // DB wants vaccineKey
+          date: String(item.date ?? "").trim(),
         }))
-        .filter((item) => item.vaccineName || item.date);
+        .filter((item) => item.vaccineKey || item.date);
 
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          displayName: form.patientName.trim(),
-          updatedAt: serverTimestamp(),
-          profile: {
-            patientName: form.patientName.trim(),
-            dateOfBirth: form.dateOfBirth,
-            gender: form.gender,
-            chronicDiseases,
-            vaccinationHistory,
-            phoneNumber: form.phoneNumber.trim(),
-            postalCode: formattedPostalCode,
-            updatedAt: serverTimestamp(),
-          },
-        },
-        { merge: true }
-      );
+      const payloadToSave = {
+        userId: user.uid,
+        isPrimary:
+          typeof existingUserDoc?.isPrimary === "boolean" ? existingUserDoc.isPrimary : true,
+        firstName,
+        lastName,
+        dateOfBirth: form.dateOfBirth,
+        gender: normalizeGenderForDb(form.gender),
+        postalCode: formattedPostalCode,
+        phoneNumber: form.phoneNumber.trim(),
+        chronicConditions,
+        riskTags,
+        familyMembers: Array.isArray(existingUserDoc?.familyMembers)
+          ? existingUserDoc.familyMembers
+          : [],
+        vaccinationHistory,
+        updatedAt: serverTimestamp(),
+        displayName: form.patientName.trim(), // optional helper for UI/auth convenience
+      };
+
+      // only set createdAt if missing
+      if (!existingUserDoc?.createdAt) {
+        payloadToSave.createdAt = serverTimestamp();
+      }
+
+      // Save in NEW top-level schema
+      await setDoc(doc(db, "users", user.uid), payloadToSave, { merge: true });
+
+      // keep local snapshot in sync enough for next save
+      setExistingUserDoc((prev) => ({
+        ...(prev || {}),
+        ...payloadToSave,
+      }));
 
       setStatus("Profile saved.");
     } catch (err) {
@@ -485,13 +576,13 @@ function Profile() {
               </div>
             </div>
 
-            {/* Chronic Diseases */}
+            {/* Chronic Diseases / Risk Tags */}
             <div style={styles.section}>
               <div style={styles.sectionHeaderRow}>
                 <div>
-                  <div style={styles.sectionTitle}>List of Chronic Diseases</div>
+                  <div style={styles.sectionTitle}>Risk Conditions / Tags</div>
                   <div style={styles.sectionSub}>
-                    Add one condition per row (optional).
+                    Select applicable risk conditions (saved as riskTags and mirrored into chronicConditions).
                   </div>
                 </div>
 
@@ -501,7 +592,7 @@ function Profile() {
                   style={styles.secondaryBtn}
                   aria-label="Add chronic disease"
                 >
-                  + Add disease
+                  + Add condition
                 </button>
               </div>
 
@@ -515,7 +606,7 @@ function Profile() {
                       >
                         <option value="">Select a condition (optional)</option>
 
-                        {/* If a stored value isn’t in constants, keep it visible so data isn’t lost */}
+                        {/* Keep unknown stored values visible */}
                         {disease && !Object.prototype.hasOwnProperty.call(RISK_TAGS, disease) ? (
                           <option value={disease}>{disease} (unknown)</option>
                         ) : null}
@@ -569,14 +660,18 @@ function Profile() {
                       <Field label={index === 0 ? "Vaccine name" : `Vaccine ${index + 1}`}>
                         <Select
                           value={vaccine.vaccineName}
-                          onChange={(e) => onVaccinationFieldChange(index, "vaccineName", e.target.value)}
+                          onChange={(e) =>
+                            onVaccinationFieldChange(index, "vaccineName", e.target.value)
+                          }
                         >
                           <option value="">Select vaccine (optional)</option>
 
                           {/* Keep unknown stored values visible */}
                           {vaccine.vaccineName &&
-                            !Object.prototype.hasOwnProperty.call(VACCINES, vaccine.vaccineName) ? (
-                            <option value={vaccine.vaccineName}>{vaccine.vaccineName} (unknown)</option>
+                          !Object.prototype.hasOwnProperty.call(VACCINES, vaccine.vaccineName) ? (
+                            <option value={vaccine.vaccineName}>
+                              {vaccine.vaccineName} (unknown)
+                            </option>
                           ) : null}
 
                           {VACCINE_OPTIONS.map((opt) => (
