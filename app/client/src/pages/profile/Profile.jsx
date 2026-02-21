@@ -3,6 +3,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../../firebase";
 import { useAuth } from "../../hooks/useAuth";
+import { VACCINES, RISK_TAGS } from "../../../../contracts/constants";
 
 const INITIAL_FORM = {
   patientName: "",
@@ -13,6 +14,50 @@ const INITIAL_FORM = {
   phoneNumber: "",
   postalCode: "",
 };
+
+const VACCINE_OPTIONS = Object.entries(VACCINES)
+  .map(([key, label]) => ({ key, label }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+const RISK_TAG_OPTIONS = Object.entries(RISK_TAGS)
+  .map(([key, label]) => ({ key, label }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+const VACCINE_LABEL_TO_KEY = Object.fromEntries(
+  Object.entries(VACCINES).map(([k, v]) => [v, k])
+);
+
+const RISK_LABEL_TO_KEY = Object.fromEntries(
+  Object.entries(RISK_TAGS).map(([k, v]) => [v, k])
+);
+
+function coerceVaccineKey(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (Object.prototype.hasOwnProperty.call(VACCINES, raw)) return raw;            // already a key
+  if (Object.prototype.hasOwnProperty.call(VACCINE_LABEL_TO_KEY, raw)) return VACCINE_LABEL_TO_KEY[raw]; // label -> key
+  return raw; // unknown, keep as-is so user doesn’t lose it
+}
+
+function coerceRiskTagKey(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (Object.prototype.hasOwnProperty.call(RISK_TAGS, raw)) return raw;           // already a key
+  if (Object.prototype.hasOwnProperty.call(RISK_LABEL_TO_KEY, raw)) return RISK_LABEL_TO_KEY[raw]; // label -> key
+  return raw; // unknown, keep as-is
+}
+
+function uniqueNonEmptyStrings(arr) {
+  const out = [];
+  const seen = new Set();
+  for (const v of arr) {
+    const s = String(v ?? "").trim();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
 
 function toStringArray(value) {
   if (Array.isArray(value)) {
@@ -162,8 +207,9 @@ function Profile() {
 
         const data = snap.data();
         const profile = data?.profile || {};
-        const loadedChronicDiseases = toStringArray(profile.chronicDiseases);
-        const loadedVaccines = toVaccineArray(profile.vaccinationHistory);
+        const loadedChronicDiseases = toStringArray(profile.chronicDiseases).map(coerceRiskTagKey);
+
+        const loadedVaccines = toVaccineArray(profile.vaccinationHistory).map((v) => ({ ...v, vaccineName: coerceVaccineKey(v.vaccineName), }));
 
         setForm({
           patientName: profile.patientName || data.displayName || "",
@@ -269,13 +315,11 @@ function Profile() {
         return;
       }
 
-      const chronicDiseases = form.chronicDiseases
-        .map((item) => item.trim())
-        .filter(Boolean);
+      const chronicDiseases = uniqueNonEmptyStrings(form.chronicDiseases);
 
       const vaccinationHistory = form.vaccinationHistory
         .map((item) => ({
-          vaccineName: item.vaccineName.trim(),
+          vaccineName: String(item.vaccineName ?? "").trim(), // now stores the KEY (e.g., "MMR")
           date: item.date,
         }))
         .filter((item) => item.vaccineName || item.date);
@@ -404,7 +448,7 @@ function Profile() {
                     pattern="[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d"
                     title='Enter postal code in format "R3T 6G8"'
                     required
-                  /> 
+                  />
                 </Field>
 
                 <div />
@@ -465,12 +509,23 @@ function Profile() {
                 {form.chronicDiseases.map((disease, index) => (
                   <div key={`disease-${index}`} style={styles.inlineRow}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <Input
-                        type="text"
+                      <Select
                         value={disease}
                         onChange={(e) => onChronicDiseaseChange(index, e.target.value)}
-                        placeholder={`Chronic disease ${index + 1}`}
-                      />
+                      >
+                        <option value="">Select a condition (optional)</option>
+
+                        {/* If a stored value isn’t in constants, keep it visible so data isn’t lost */}
+                        {disease && !Object.prototype.hasOwnProperty.call(RISK_TAGS, disease) ? (
+                          <option value={disease}>{disease} (unknown)</option>
+                        ) : null}
+
+                        {RISK_TAG_OPTIONS.map((opt) => (
+                          <option key={opt.key} value={opt.key}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </Select>
                     </div>
 
                     <button
@@ -512,14 +567,24 @@ function Profile() {
                   <div key={`vaccine-${index}`} style={styles.vaccineRow}>
                     <div style={{ minWidth: 0 }}>
                       <Field label={index === 0 ? "Vaccine name" : `Vaccine ${index + 1}`}>
-                        <Input
-                          type="text"
+                        <Select
                           value={vaccine.vaccineName}
-                          onChange={(e) =>
-                            onVaccinationFieldChange(index, "vaccineName", e.target.value)
-                          }
-                          placeholder="Vaccine name"
-                        />
+                          onChange={(e) => onVaccinationFieldChange(index, "vaccineName", e.target.value)}
+                        >
+                          <option value="">Select vaccine (optional)</option>
+
+                          {/* Keep unknown stored values visible */}
+                          {vaccine.vaccineName &&
+                            !Object.prototype.hasOwnProperty.call(VACCINES, vaccine.vaccineName) ? (
+                            <option value={vaccine.vaccineName}>{vaccine.vaccineName} (unknown)</option>
+                          ) : null}
+
+                          {VACCINE_OPTIONS.map((opt) => (
+                            <option key={opt.key} value={opt.key}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </Select>
                       </Field>
                     </div>
 
