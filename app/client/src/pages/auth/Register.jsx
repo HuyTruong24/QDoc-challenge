@@ -23,7 +23,7 @@ export default function Register() {
 
     try {
       await signup({ email, password, displayName }); // MUST await
-      nav("/patient"); // navigate after success
+      nav("/profile");
     } catch (e) {
       setErr(e?.message || "Signup failed");
     } finally {
