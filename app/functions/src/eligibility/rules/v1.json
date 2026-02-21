@@ -1,9 +1,1579 @@
 {
-  "version": "v1",
-  "vaccines": [
-    { "vaccineKey": "flu",  "displayName": "Influenza (Flu)" },
-    { "vaccineKey": "tdap", "displayName": "Tdap Booster" },
-    { "vaccineKey": "hpv",  "displayName": "HPV" },
-    { "vaccineKey": "hepb", "displayName": "Hepatitis B" }
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-02-20",
+  "statusModel": {
+    "ELIGIBLE": "Meets eligibility; next dose not due within dueSoonWindowDays.",
+    "DUE_SOON": "Next scheduled dose is within dueSoonWindowDays.",
+    "OVERDUE": "Next scheduled dose date is in the past.",
+    "NOT_ELIGIBLE": "Does not meet eligibility criteria."
+  },
+  "dueSoonWindowDays": 30,
+  "vaccineRules": [
+    {
+      "vaccineKey": "COVID19",
+      "displayName": "COVID-19 vaccine (Manitoba publicly funded)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 1,
+        "repeatEveryDays": 365
+      },
+      "clauses": [
+        {
+          "clauseId": "covid_external_eligibility_flag",
+          "priority": 10,
+          "minAgeMonths": 6,
+          "requireRiskTagsAny": [
+            "COVID_ELIGIBLE_NOW"
+          ],
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1,
+            "repeatEveryDays": 365
+          },
+          "reasons": [
+            "COVID-19 eligibility changes over time; this clause assumes your app sets COVID_ELIGIBLE_NOW when current Manitoba criteria are met."
+          ]
+        }
+      ],
+      "notes": "Placeholder: Manitoba’s vaccine eligibility page links out for current COVID-19 criteria. Use a questionnaire or an admin toggle to set riskTag COVID_ELIGIBLE_NOW."
+    },
+    {
+      "vaccineKey": "DTaP_IPV_Hib",
+      "displayName": "DTaP-IPV-Hib (diphtheria, tetanus, pertussis, polio, Hib)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 4,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 2,
+            "latestAgeMonths": 3
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 4,
+            "latestAgeMonths": 5,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 3,
+            "earliestAgeMonths": 6,
+            "latestAgeMonths": 7,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 4,
+            "earliestAgeMonths": 18,
+            "latestAgeMonths": 23,
+            "minIntervalDays": 168
+          }
+        ],
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "dtap_ipv_hib_child_under7_incomplete",
+          "priority": 10,
+          "maxAgeYears": 7,
+          "requireDosesLessThan": 4,
+          "reasons": [
+            "DTaP-IPV-Hib is publicly funded for children under 7 who are not fully immunized."
+          ]
+        },
+        {
+          "clauseId": "dtap_ipv_hib_specialist_directed",
+          "priority": 20,
+          "maxAgeYears": 7,
+          "requireRiskTagsAny": [
+            "CCMB_SCHEDULE",
+            "STEM_CELL_TRANSPLANT",
+            "CAR_T_THERAPY"
+          ],
+          "requireDosesLessThan": 4,
+          "reasons": [
+            "Specialist-directed schedules (e.g., CancerCare Manitoba / transplant) may require additional/redo doses in children under 7."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "Hib",
+      "displayName": "Haemophilus influenzae type b (Hib)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 4,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 2,
+            "latestAgeMonths": 3
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 4,
+            "latestAgeMonths": 5,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 3,
+            "earliestAgeMonths": 6,
+            "latestAgeMonths": 7,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 4,
+            "earliestAgeMonths": 18,
+            "latestAgeMonths": 23,
+            "minIntervalDays": 168
+          }
+        ]
+      },
+      "clauses": [
+        {
+          "clauseId": "hib_child_under5_incomplete",
+          "priority": 10,
+          "maxAgeYears": 5,
+          "requireDosesLessThan": 4,
+          "reasons": [
+            "Hib is publicly funded for children under 5 who are not fully immunized."
+          ]
+        },
+        {
+          "clauseId": "hib_high_risk_conditions",
+          "priority": 20,
+          "requireRiskTagsAny": [
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "STEM_CELL_TRANSPLANT",
+            "SOLID_ORGAN_TRANSPLANT",
+            "IMMUNOCOMPROMISED",
+            "CCMB_SCHEDULE"
+          ],
+          "requireDosesLessThan": 4,
+          "reasons": [
+            "Certain high-risk medical conditions or specialist programs may qualify for Hib vaccination beyond routine childhood schedules."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "HA",
+      "displayName": "Hepatitis A (HA)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "minIntervalDaysDefault": 180
+      },
+      "clauses": [
+        {
+          "clauseId": "ha_outbreak_island_lake_or_peguis",
+          "priority": 10,
+          "minAgeMonths": 6,
+          "requireRiskTagsAny": [
+            "HAV_OUTBREAK_ISLAND_LAKE",
+            "HAV_OUTBREAK_PEGUIS",
+            "HAV_TRAVEL_WORK_ISLAND_LAKE",
+            "HAV_TRAVEL_WORK_PEGUIS"
+          ],
+          "requireDosesLessThan": 2,
+          "reasons": [
+            "Hepatitis A outbreak eligibility includes specified communities (e.g., Island Lake area, Peguis First Nation) and people travelling to/working in those communities."
+          ]
+        },
+        {
+          "clauseId": "ha_contact_or_common_exposure",
+          "priority": 20,
+          "minAgeMonths": 6,
+          "requireRiskTagsAny": [
+            "HAV_CLOSE_CONTACT",
+            "HAV_COMMON_EXPOSURE"
+          ],
+          "requireDosesLessThan": 2,
+          "reasons": [
+            "Hepatitis A vaccine is publicly funded for contacts of cases or common exposures during outbreaks."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "HB",
+      "displayName": "Hepatitis B (HB)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 3,
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "hb_school_program",
+          "priority": 10,
+          "birthYearMin": 2006,
+          "minAgeYears": 9,
+          "maxAgeYears": 15,
+          "requireRiskTagsAny": [
+            "HBV_SCHOOL_PROGRAM",
+            "GRADE6_PROGRAM"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 120
+          },
+          "reasons": [
+            "Manitoba school-based hepatitis B program: eligible cohort (use GRADE6_PROGRAM/HBV_SCHOOL_PROGRAM to confirm)."
+          ]
+        },
+        {
+          "clauseId": "hb_catchup_missed_program_1989_2005",
+          "priority": 20,
+          "birthYearMin": 1989,
+          "birthYearMax": 2005,
+          "requireRiskTagsAny": [
+            "HBV_CATCHUP_MISSED_SCHOOL"
+          ],
+          "requireDosesLessThan": 3,
+          "reasons": [
+            "Catch-up eligibility exists for people who missed prior school programs (use HBV_CATCHUP_MISSED_SCHOOL)."
+          ]
+        },
+        {
+          "clauseId": "hb_high_risk_any_age",
+          "priority": 30,
+          "requireRiskTagsAny": [
+            "HBV_HIGH_RISK",
+            "HEMODIALYSIS",
+            "HIV",
+            "HEPATITIS_C",
+            "INJECTION_DRUG_USE",
+            "HOUSEHOLD_CONTACT_HBV",
+            "SEXUAL_CONTACT_HBV",
+            "OCCUPATIONAL_BLOOD_EXPOSURE"
+          ],
+          "requireDosesLessThan": 3,
+          "reasons": [
+            "High-risk medical or exposure categories may qualify for publicly funded hepatitis B vaccination (use risk tags from your intake form)."
+          ]
+        }
+      ],
+      "notes": "This rule is intentionally simplified: Manitoba’s HB eligibility includes several cohort/exposure categories. Model those categories as riskTags collected via a questionnaire."
+    },
+    {
+      "vaccineKey": "HAHB",
+      "displayName": "Hepatitis A + B combination (HAHB / Twinrix)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 3,
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "hahb_when_both_indicated",
+          "priority": 10,
+          "minAgeMonths": 12,
+          "requireRiskTagsAny": [
+            "HAHB_ELIGIBLE"
+          ],
+          "requireDosesLessThan": 3,
+          "reasons": [
+            "Use the combination vaccine when the patient meets eligibility for both hepatitis A and hepatitis B (set riskTag HAHB_ELIGIBLE)."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "HPV",
+      "displayName": "Human Papillomavirus (HPV)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "minIntervalDaysDefault": 180
+      },
+      "clauses": [
+        {
+          "clauseId": "hpv_immunocompromised_9_45",
+          "priority": 5,
+          "minAgeYears": 9,
+          "maxAgeYears": 45,
+          "requireRiskTagsAny": [
+            "IMMUNOCOMPROMISED",
+            "HIV",
+            "TRANSPLANT",
+            "CCMB_SCHEDULE"
+          ],
+          "requireDosesLessThan": 3,
+          "requiredDosesOverride": 3,
+          "seriesOverride": {
+            "dosesRequiredDefault": 3,
+            "minIntervalDaysDefault": 56
+          },
+          "reasons": [
+            "Immunocompromised (incl. HIV/transplant) individuals may be eligible for a 3-dose publicly funded HPV series up to age 45."
+          ]
+        },
+        {
+          "clauseId": "hpv_other_high_risk",
+          "priority": 10,
+          "minAgeYears": 9,
+          "maxAgeYears": 45,
+          "requireRiskTagsAny": [
+            "GBMSM",
+            "TRANSGENDER",
+            "INCARCERATED_MALE_UNDER18",
+            "RECURRENT_RESP_PAPILLOMATOSIS",
+            "HIGH_GRADE_CERVICAL_DYSPLASIA",
+            "SEXUAL_ASSAULT_SURVIVOR"
+          ],
+          "requireDosesLessThan": 3,
+          "requiredDosesOverride": 3,
+          "seriesOverride": {
+            "dosesRequiredDefault": 3,
+            "minIntervalDaysDefault": 56
+          },
+          "reasons": [
+            "Certain high-risk groups may qualify for publicly funded HPV vaccination (model as risk tags from intake)."
+          ]
+        },
+        {
+          "clauseId": "hpv_school_cohort_2dose",
+          "priority": 20,
+          "minAgeYears": 9,
+          "maxAgeYears": 14,
+          "requireRiskTagsAny": [
+            "HPV_SCHOOL_PROGRAM",
+            "GRADE6_PROGRAM"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 180
+          },
+          "reasons": [
+            "School-based HPV program typically uses a 2-dose series when started before age 15 (set GRADE6_PROGRAM/HPV_SCHOOL_PROGRAM)."
+          ]
+        },
+        {
+          "clauseId": "hpv_school_cohort_3dose_15plus",
+          "priority": 30,
+          "minAgeYears": 15,
+          "maxAgeYears": 26,
+          "requireRiskTagsAny": [
+            "HPV_SCHOOL_PROGRAM",
+            "HPV_CATCHUP_SCHOOL"
+          ],
+          "requireDosesLessThan": 3,
+          "requiredDosesOverride": 3,
+          "seriesOverride": {
+            "dosesRequiredDefault": 3,
+            "minIntervalDaysDefault": 56
+          },
+          "reasons": [
+            "Catch-up HPV vaccination may use a 3-dose series when started at age 15+."
+          ]
+        }
+      ],
+      "notes": "Use gender/birth-cohort filters if you want to mirror Manitoba’s “healthy cohort” wording. For hackathons, using program tags (GRADE6_PROGRAM) + age bands is usually enough."
+    },
+    {
+      "vaccineKey": "IPV",
+      "displayName": "Inactivated Polio Vaccine (IPV)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 4,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 2,
+            "latestAgeMonths": 3
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 4,
+            "latestAgeMonths": 5,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 3,
+            "earliestAgeMonths": 6,
+            "latestAgeMonths": 7,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 4,
+            "earliestAgeMonths": 18,
+            "latestAgeMonths": 23,
+            "minIntervalDays": 168
+          }
+        ],
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "ipv_under18_incomplete",
+          "priority": 10,
+          "maxAgeYears": 18,
+          "requireDosesLessThan": 4,
+          "reasons": [
+            "IPV is publicly funded for children/youth under 18 who are not fully immunized for polio."
+          ]
+        },
+        {
+          "clauseId": "ipv_specialist_directed_any_age",
+          "priority": 20,
+          "requireRiskTagsAny": [
+            "CCMB_SCHEDULE",
+            "STEM_CELL_TRANSPLANT",
+            "CAR_T_THERAPY",
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "IMMUNOCOMPROMISED"
+          ],
+          "requireDosesLessThan": 4,
+          "reasons": [
+            "Certain specialist-directed schedules (e.g., oncology/transplant) may qualify for IPV outside routine age bands."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "MMR",
+      "displayName": "Measles, Mumps, Rubella (MMR)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 12,
+            "latestAgeMonths": 15
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 48,
+            "latestAgeMonths": 72,
+            "minIntervalDays": 28
+          }
+        ],
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "mmr_infant_6_11mo_outbreak_or_travel",
+          "priority": 5,
+          "minAgeMonths": 6,
+          "maxAgeMonths": 11,
+          "requireRiskTagsAny": [
+            "MEASLES_TRAVEL",
+            "MEASLES_OUTBREAK"
+          ],
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "Infants 6–11 months may be eligible for an early MMR dose during outbreaks or before travel (still needs routine doses later)."
+          ]
+        },
+        {
+          "clauseId": "mmr_routine_childhood",
+          "priority": 10,
+          "minAgeMonths": 12,
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "doseMilestones": [
+              {
+                "doseNumber": 1,
+                "earliestAgeMonths": 12,
+                "latestAgeMonths": 15
+              },
+              {
+                "doseNumber": 2,
+                "earliestAgeMonths": 48,
+                "latestAgeMonths": 72,
+                "minIntervalDays": 28
+              }
+            ],
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Routine MMR schedule: dose at 12 months and a second dose at 4–6 years."
+          ]
+        },
+        {
+          "clauseId": "mmr_healthcare_worker",
+          "priority": 20,
+          "requireRiskTagsAny": [
+            "HEALTHCARE_WORKER"
+          ],
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Health care workers typically require 2 doses of MMR if not immune/fully documented."
+          ]
+        },
+        {
+          "clauseId": "mmr_student_born_before_1970",
+          "priority": 30,
+          "requireRiskTagsAny": [
+            "POST_SECONDARY_STUDENT"
+          ],
+          "birthYearMax": 1969,
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "Post-secondary students born before 1970 may be eligible for 1 dose if not immune/fully documented."
+          ]
+        },
+        {
+          "clauseId": "mmr_student_born_1970_or_later",
+          "priority": 31,
+          "requireRiskTagsAny": [
+            "POST_SECONDARY_STUDENT"
+          ],
+          "birthYearMin": 1970,
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Post-secondary students born in/after 1970 may be eligible for 2 doses if not immune/fully documented."
+          ]
+        },
+        {
+          "clauseId": "mmr_general_birth_1985_or_later",
+          "priority": 40,
+          "birthYearMin": 1985,
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "General population born in/after 1985 may need 2 documented MMR doses."
+          ]
+        },
+        {
+          "clauseId": "mmr_general_birth_1970_1984",
+          "priority": 41,
+          "birthYearMin": 1970,
+          "birthYearMax": 1984,
+          "forbidRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "General population born 1970–1984 may be eligible for 1 dose if not immune/fully documented."
+          ]
+        }
+      ],
+      "notes": "Immunity can also come from lab evidence or past infection; if you collect that, add riskTag HAS_MMR_IMMUNITY to short-circuit eligibility."
+    },
+    {
+      "vaccineKey": "MMRV",
+      "displayName": "MMRV (measles, mumps, rubella, varicella combination)",
+      "aliasesForDoseCounting": [
+        "MMR",
+        "VAR"
+      ],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 12,
+            "latestAgeMonths": 15
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 48,
+            "latestAgeMonths": 72,
+            "minIntervalDays": 28
+          }
+        ],
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "mmrv_child_eligible",
+          "priority": 10,
+          "minAgeMonths": 12,
+          "maxAgeYears": 13,
+          "forbidRiskTagsAny": [
+            "PREGNANT",
+            "IMMUNOCOMPROMISED"
+          ],
+          "requireDosesLessThan": 2,
+          "reasons": [
+            "MMRV is publicly funded for children (under 13) when both MMR and varicella protection are needed."
+          ]
+        }
+      ],
+      "notes": "Implementation tip: count an MMRV dose as both an MMR dose and a Varicella dose."
+    },
+    {
+      "vaccineKey": "MenC_ACYW",
+      "displayName": "Meningococcal (Men-C-ACYW / Men-C-C)",
+      "aliasesForDoseCounting": [
+        "MenC_C",
+        "MenC_C_C",
+        "MenC"
+      ],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 12,
+            "latestAgeMonths": 15
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 132,
+            "latestAgeMonths": 156,
+            "minIntervalDays": 365
+          }
+        ],
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "menc_outbreak_infant_6w_to_under6m",
+          "priority": 5,
+          "minAgeWeeks": 6,
+          "maxAgeMonths": 6,
+          "requireRiskTagsAny": [
+            "MENINGO_OUTBREAK_INDIGENOUS_COMMUNITY"
+          ],
+          "requireDosesLessThan": 3,
+          "requiredDosesOverride": 3,
+          "seriesOverride": {
+            "dosesRequiredDefault": 3,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Outbreak eligibility: infants 6 weeks to <6 months may receive a 2-dose primary series plus the routine 12-month dose (simplified as 3 doses)."
+          ]
+        },
+        {
+          "clauseId": "menc_outbreak_infant_6m_to_under12m",
+          "priority": 6,
+          "minAgeMonths": 6,
+          "maxAgeMonths": 12,
+          "requireRiskTagsAny": [
+            "MENINGO_OUTBREAK_INDIGENOUS_COMMUNITY"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Outbreak eligibility: infants 6 months to <12 months may receive 1 dose now plus the routine 12-month dose (simplified as 2 doses)."
+          ]
+        },
+        {
+          "clauseId": "menc_routine_12_month_dose",
+          "priority": 10,
+          "minAgeMonths": 12,
+          "maxAgeYears": 10,
+          "birthYearMin": 2020,
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "Routine program includes a meningococcal C dose at 12 months for eligible birth cohorts."
+          ]
+        },
+        {
+          "clauseId": "menc_catchup_missed_12m_under10",
+          "priority": 20,
+          "maxAgeYears": 10,
+          "birthYearMin": 2008,
+          "birthYearMax": 2019,
+          "requireRiskTagsAny": [
+            "MENC_MISSED_12M"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "Catch-up: children who missed the 12-month meningococcal C dose may be eligible (set MENC_MISSED_12M)."
+          ]
+        },
+        {
+          "clauseId": "menc_grade6_program",
+          "priority": 30,
+          "minAgeYears": 10,
+          "maxAgeYears": 15,
+          "birthYearMin": 2008,
+          "requireRiskTagsAny": [
+            "GRADE6_PROGRAM",
+            "MENC_SCHOOL_PROGRAM"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "doseMilestones": [
+              {
+                "doseNumber": 1,
+                "earliestAgeMonths": 12,
+                "latestAgeMonths": 15
+              },
+              {
+                "doseNumber": 2,
+                "earliestAgeMonths": 132,
+                "latestAgeMonths": 156,
+                "minIntervalDays": 365
+              }
+            ],
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "School program: Men-C-ACYW offered around Grade 6 (use GRADE6_PROGRAM to confirm)."
+          ]
+        },
+        {
+          "clauseId": "menc_catchup_missed_grade4_birth_1995_2007",
+          "priority": 40,
+          "birthYearMin": 1995,
+          "birthYearMax": 2007,
+          "requireRiskTagsAny": [
+            "MENC_CATCHUP_MISSED_GRADE4"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "Catch-up: cohorts who missed earlier school programs may be eligible (set MENC_CATCHUP_MISSED_GRADE4)."
+          ]
+        },
+        {
+          "clauseId": "menc_high_risk_medical",
+          "priority": 50,
+          "requireRiskTagsAny": [
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "COMPLEMENT_DEFICIENCY",
+            "IMMUNOCOMPROMISED",
+            "HIV",
+            "TRANSPLANT",
+            "MENINGO_HIGH_RISK"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "repeatEveryDays": 1460
+          },
+          "reasons": [
+            "High-risk medical conditions may qualify for meningococcal vaccination and periodic boosters (simplified booster interval)."
+          ]
+        }
+      ],
+      "notes": "Men-C programs involve multiple products and age-dependent schedules; this is a simplified, tag-driven model suitable for a hackathon."
+    },
+    {
+      "vaccineKey": "MenB",
+      "displayName": "Meningococcal Type B (MenB / Bexsero)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "menb_highrisk_or_outbreak_2_5_months",
+          "priority": 10,
+          "minAgeMonths": 2,
+          "maxAgeMonths": 6,
+          "requireRiskTagsAny": [
+            "MENB_HIGH_RISK",
+            "MENB_OUTBREAK_CONTROL"
+          ],
+          "requireDosesLessThan": 3,
+          "requiredDosesOverride": 3,
+          "seriesOverride": {
+            "dosesRequiredDefault": 3,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "High-risk/outbreak: starting MenB at 2–5 months requires a 3-dose series (simplified)."
+          ]
+        },
+        {
+          "clauseId": "menb_highrisk_or_outbreak_6_11_months",
+          "priority": 11,
+          "minAgeMonths": 6,
+          "maxAgeMonths": 12,
+          "requireRiskTagsAny": [
+            "MENB_HIGH_RISK",
+            "MENB_OUTBREAK_CONTROL"
+          ],
+          "requireDosesLessThan": 3,
+          "requiredDosesOverride": 3,
+          "seriesOverride": {
+            "dosesRequiredDefault": 3,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "High-risk/outbreak: starting MenB at 6–11 months requires a 3-dose series (simplified)."
+          ]
+        },
+        {
+          "clauseId": "menb_highrisk_or_outbreak_12_23_months",
+          "priority": 12,
+          "minAgeMonths": 12,
+          "maxAgeMonths": 24,
+          "requireRiskTagsAny": [
+            "MENB_HIGH_RISK",
+            "MENB_OUTBREAK_CONTROL"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "High-risk/outbreak: starting MenB at 12–23 months requires a 2-dose series (simplified)."
+          ]
+        },
+        {
+          "clauseId": "menb_highrisk_or_outbreak_2_25_years",
+          "priority": 13,
+          "minAgeYears": 2,
+          "maxAgeYears": 25,
+          "requireRiskTagsAny": [
+            "MENB_HIGH_RISK",
+            "MENB_OUTBREAK_CONTROL"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "High-risk/outbreak: starting MenB at age 2–25 years requires a 2-dose series (simplified)."
+          ]
+        }
+      ],
+      "notes": "MenB is not routine for everyone; it’s publicly funded for specific high-risk/outbreak categories (collect those categories as riskTags)."
+    },
+    {
+      "vaccineKey": "MPOX",
+      "displayName": "Mpox (MVA-BN / Imvamune)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "mpox_post_exposure",
+          "priority": 5,
+          "requireRiskTagsAny": [
+            "MPOX_POST_EXPOSURE_CLOSE_CONTACT"
+          ],
+          "requireDosesLessThan": 2,
+          "reasons": [
+            "Post-exposure prophylaxis may be offered to close contacts of a confirmed/probable mpox case (set MPOX_POST_EXPOSURE_CLOSE_CONTACT)."
+          ]
+        },
+        {
+          "clauseId": "mpox_pre_exposure_high_risk",
+          "priority": 10,
+          "requireRiskTagsAny": [
+            "MPOX_PREP_GBMSM_HIGH_RISK",
+            "MPOX_PREP_SEX_WORKER",
+            "MPOX_PREP_SEX_VENUE_STAFF",
+            "MPOX_PREP_LAB_PERSONNEL",
+            "MPOX_PREP_HEALTHCARE_OUTBREAK_SUPPORT",
+            "MPOX_PREP_TRAVEL_CLADE_I_AREA"
+          ],
+          "requireDosesLessThan": 2,
+          "reasons": [
+            "Pre-exposure prophylaxis may be offered to specific high-risk groups and some occupational/travel categories (set appropriate MPOX_PREP_* tags)."
+          ]
+        }
+      ],
+      "notes": "Mpox eligibility includes behaviour/occupation/travel details that are not in your base profile—collect them via a short questionnaire and store as riskTags."
+    },
+    {
+      "vaccineKey": "PNEU_C15",
+      "displayName": "Pneumococcal Conjugate (Pneu-C-15)",
+      "aliasesForDoseCounting": [
+        "PNEU_C13"
+      ],
+      "series": {
+        "dosesRequiredDefault": 3,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 2,
+            "latestAgeMonths": 3
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 4,
+            "latestAgeMonths": 5,
+            "minIntervalDays": 28
+          },
+          {
+            "doseNumber": 3,
+            "earliestAgeMonths": 18,
+            "latestAgeMonths": 23,
+            "minIntervalDays": 168
+          }
+        ],
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "pneuc15_routine_children_under5",
+          "priority": 10,
+          "minAgeMonths": 2,
+          "maxAgeMonths": 60,
+          "requireDosesLessThan": 3,
+          "reasons": [
+            "Routine pneumococcal program for children uses a 3-dose conjugate series."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "PNEU_C20",
+      "displayName": "Pneumococcal Conjugate (Pneu-C-20)",
+      "aliasesForDoseCounting": [
+        "PNEU_C20"
+      ],
+      "series": {
+        "dosesRequiredDefault": 1,
+        "maxLifetimeDoses": 1
+      },
+      "clauses": [
+        {
+          "clauseId": "pneuc20_adults_65_plus",
+          "priority": 10,
+          "minAgeYears": 65,
+          "requireDosesLessThan": 1,
+          "historyMustNotHaveDoseAfterAge": {
+            "vaccineKey": "PNEU_P23",
+            "ageYears": 65
+          },
+          "reasons": [
+            "Adults 65+ may be eligible for a single publicly funded Pneu-C-20 dose if they have not received Pneu-P-23 since turning 65."
+          ]
+        },
+        {
+          "clauseId": "pneuc20_adults_high_risk_18_plus",
+          "priority": 20,
+          "minAgeYears": 18,
+          "requireRiskTagsAny": [
+            "CHRONIC_HEART_DISEASE",
+            "CHRONIC_LUNG_DISEASE",
+            "DIABETES",
+            "CHRONIC_LIVER_DISEASE",
+            "CHRONIC_KIDNEY_DISEASE",
+            "NEPHROTIC_SYNDROME",
+            "COCHLEAR_IMPLANT",
+            "CSF_LEAK",
+            "IMMUNOCOMPROMISED",
+            "HIV",
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "TRANSPLANT",
+            "CANCER",
+            "IMMUNOSUPPRESSIVE_THERAPY",
+            "ALCOHOL_USE_DISORDER",
+            "PNEUMOCOCCAL_HIGH_RISK"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1,
+            "maxLifetimeDoses": 1
+          },
+          "reasons": [
+            "Adults 18+ with specified high-risk medical conditions may be eligible for a single Pneu-C-20 dose."
+          ]
+        },
+        {
+          "clauseId": "pneuc20_children_2m_to_under2y_high_risk_or_fn",
+          "priority": 30,
+          "minAgeMonths": 2,
+          "maxAgeMonths": 24,
+          "requireRiskTagsAny": [
+            "CHRONIC_HEART_DISEASE",
+            "CHRONIC_LUNG_DISEASE",
+            "DIABETES",
+            "CHRONIC_LIVER_DISEASE",
+            "CHRONIC_KIDNEY_DISEASE",
+            "NEPHROTIC_SYNDROME",
+            "COCHLEAR_IMPLANT",
+            "CSF_LEAK",
+            "IMMUNOCOMPROMISED",
+            "HIV",
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "TRANSPLANT",
+            "CANCER",
+            "IMMUNOSUPPRESSIVE_THERAPY",
+            "ALCOHOL_USE_DISORDER",
+            "LIVES_IN_FIRST_NATIONS_COMMUNITY"
+          ],
+          "requireDosesLessThan": 4,
+          "requiredDosesOverride": 4,
+          "seriesOverride": {
+            "dosesRequiredDefault": 4,
+            "doseMilestones": [
+              {
+                "doseNumber": 1,
+                "earliestAgeMonths": 2,
+                "latestAgeMonths": 3
+              },
+              {
+                "doseNumber": 2,
+                "earliestAgeMonths": 4,
+                "latestAgeMonths": 5,
+                "minIntervalDays": 28
+              },
+              {
+                "doseNumber": 3,
+                "earliestAgeMonths": 6,
+                "latestAgeMonths": 7,
+                "minIntervalDays": 28
+              },
+              {
+                "doseNumber": 4,
+                "earliestAgeMonths": 18,
+                "latestAgeMonths": 23,
+                "minIntervalDays": 168
+              }
+            ],
+            "minIntervalDaysDefault": 28,
+            "maxLifetimeDoses": 4
+          },
+          "reasons": [
+            "Children 2 months to <2 years with high-risk conditions (and some First Nations community programs) may receive a 4-dose Pneu-C-20 series."
+          ]
+        },
+        {
+          "clauseId": "pneuc20_children_2y_to_under18_high_risk",
+          "priority": 40,
+          "minAgeYears": 2,
+          "maxAgeYears": 18,
+          "requireRiskTagsAny": [
+            "CHRONIC_HEART_DISEASE",
+            "CHRONIC_LUNG_DISEASE",
+            "DIABETES",
+            "CHRONIC_LIVER_DISEASE",
+            "CHRONIC_KIDNEY_DISEASE",
+            "NEPHROTIC_SYNDROME",
+            "COCHLEAR_IMPLANT",
+            "CSF_LEAK",
+            "IMMUNOCOMPROMISED",
+            "HIV",
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "TRANSPLANT",
+            "CANCER",
+            "IMMUNOSUPPRESSIVE_THERAPY",
+            "ALCOHOL_USE_DISORDER",
+            "PNEUMOCOCCAL_HIGH_RISK"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1,
+            "maxLifetimeDoses": 1
+          },
+          "reasons": [
+            "Children/youth age 2 to <18 with high-risk medical conditions may be eligible for a single Pneu-C-20 dose."
+          ]
+        }
+      ],
+      "notes": "Intervals after prior pneumococcal vaccines can matter. Keep it simple by enforcing: at least 56 days after the last pneumococcal conjugate dose and 5 years after any PNEU_P23 dose when applicable."
+    },
+    {
+      "vaccineKey": "PNEU_P23",
+      "displayName": "Pneumococcal Polysaccharide (Pneu-P-23) — legacy for history",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 0
+      },
+      "clauses": [],
+      "notes": "Manitoba’s current eligibility page mainly references PNEU_P23 as a prior vaccine for timing checks. Treat it as a history-only key unless you add separate eligibility rules."
+    },
+    {
+      "vaccineKey": "RABIES",
+      "displayName": "Rabies vaccine",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "minIntervalDaysDefault": 7
+      },
+      "clauses": [
+        {
+          "clauseId": "rabies_pre_exposure_occupational",
+          "priority": 10,
+          "requireRiskTagsAny": [
+            "RABIES_OCCUPATIONAL_RISK",
+            "VETERINARIAN",
+            "ANIMAL_CONTROL_WORKER",
+            "WILDLIFE_WORKER",
+            "RABIES_LAB_PERSONNEL"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 7
+          },
+          "reasons": [
+            "Pre-exposure rabies vaccination may be publicly funded for certain occupations at risk of rabies exposure."
+          ]
+        },
+        {
+          "clauseId": "rabies_post_exposure",
+          "priority": 5,
+          "requireRiskTagsAny": [
+            "RABIES_EXPOSURE"
+          ],
+          "requireDosesLessThan": 4,
+          "requiredDosesOverride": 4,
+          "seriesOverride": {
+            "dosesRequiredDefault": 4,
+            "minIntervalDaysDefault": 3
+          },
+          "reasons": [
+            "Post-exposure rabies prophylaxis is managed urgently by public health (model as RABIES_EXPOSURE)."
+          ]
+        }
+      ],
+      "notes": "Post-exposure management is clinical/urgent. For a hackathon, treat RABIES_EXPOSURE as an external flag set by a clinician/public health workflow."
+    },
+    {
+      "vaccineKey": "RSV_ADULT",
+      "displayName": "RSV vaccine (older adults)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 1
+      },
+      "clauses": [
+        {
+          "clauseId": "rsv_age_75_plus",
+          "priority": 10,
+          "minAgeYears": 75,
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "RSV vaccine is publicly funded for older adults 75+ (single dose)."
+          ]
+        },
+        {
+          "clauseId": "rsv_age_60_74_high_risk",
+          "priority": 20,
+          "minAgeYears": 60,
+          "maxAgeYears": 75,
+          "requireRiskTagsAny": [
+            "RESIDES_IN_PCH",
+            "PCH_RESPITE_CLIENT",
+            "HOMECARE_CLIENT",
+            "RSV_HIGH_RISK_ADULT",
+            "CHRONIC_HEART_DISEASE",
+            "CHRONIC_LUNG_DISEASE",
+            "DIABETES",
+            "CHRONIC_LIVER_DISEASE",
+            "CHRONIC_KIDNEY_DISEASE",
+            "NEPHROTIC_SYNDROME",
+            "COCHLEAR_IMPLANT",
+            "CSF_LEAK",
+            "IMMUNOCOMPROMISED",
+            "HIV",
+            "ASPLENIA",
+            "HYPO_SPLENIA",
+            "TRANSPLANT",
+            "CANCER",
+            "IMMUNOSUPPRESSIVE_THERAPY",
+            "ALCOHOL_USE_DISORDER"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "Adults 60–74 may be eligible for a publicly funded RSV vaccine if they meet specific high-risk criteria (model as tags)."
+          ]
+        }
+      ],
+      "notes": "RSV eligibility includes care-setting and clinical risk factors; model those as riskTags."
+    },
+    {
+      "vaccineKey": "RSV_NIRSEVIMAB",
+      "displayName": "RSV prevention for infants (nirsevimab; not a vaccine)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 1
+      },
+      "clauses": [
+        {
+          "clauseId": "rsv_infant_born_oct_to_mar",
+          "priority": 10,
+          "requireDosesLessThan": 1,
+          "dateOfBirthBetween": {
+            "start": "2025-10-01",
+            "end": "2026-03-31"
+          },
+          "maxAgeMonths": 12,
+          "reasons": [
+            "Infants born between Oct 1, 2025 and Mar 31, 2026 may be eligible for one publicly funded dose of RSV monoclonal antibody (nirsevimab)."
+          ]
+        },
+        {
+          "clauseId": "rsv_infant_high_risk_other_birth_months",
+          "priority": 20,
+          "maxAgeMonths": 24,
+          "requireRiskTagsAny": [
+            "RSV_HIGH_RISK_INFANT_PROGRAM_APPROVED"
+          ],
+          "requireDosesLessThan": 1,
+          "reasons": [
+            "Other infants/children may be eligible case-by-case via high-risk programs (set RSV_HIGH_RISK_INFANT_PROGRAM_APPROVED)."
+          ]
+        }
+      ],
+      "notes": "This is a simplified representation of Manitoba’s infant RSV prevention program."
+    },
+    {
+      "vaccineKey": "ROTA",
+      "displayName": "Rotavirus (Rotarix)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "minIntervalDaysDefault": 28
+      },
+      "clauses": [
+        {
+          "clauseId": "rota_dose1_window",
+          "priority": 10,
+          "minAgeWeeks": 6,
+          "maxAgeWeeks": 15,
+          "dateOfBirthOnOrAfter": "2021-04-01",
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Dose 1 is eligible only within the early infancy window and for infants born on/after Apr 1, 2021."
+          ]
+        },
+        {
+          "clauseId": "rota_dose2_before_8_months",
+          "priority": 20,
+          "maxAgeMonths": 8,
+          "dateOfBirthOnOrAfter": "2021-04-01",
+          "requireDosesAtLeast": 1,
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Dose 2 is eligible only if it can be completed before 8 months of age."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "FLU",
+      "displayName": "Seasonal Influenza vaccine",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 1,
+        "repeatEveryDays": 365
+      },
+      "clauses": [
+        {
+          "clauseId": "flu_all_manitobans_6mo_plus",
+          "priority": 10,
+          "minAgeMonths": 6,
+          "requireRiskTagsAny": [
+            "INFLUENZA_SEASON_ACTIVE"
+          ],
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1,
+            "repeatEveryDays": 365
+          },
+          "reasons": [
+            "All Manitobans 6 months+ are eligible for publicly funded seasonal influenza vaccine each season (set INFLUENZA_SEASON_ACTIVE)."
+          ]
+        }
+      ],
+      "notes": "Influenza is seasonal; store a per-season vaccination record (e.g., FLU_2025_2026) or set INFLUENZA_SEASON_ACTIVE and treat doseCount as “this season only”."
+    },
+    {
+      "vaccineKey": "TDAP",
+      "displayName": "Tetanus, Diphtheria, acellular Pertussis (Tdap)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 1,
+        "repeatEveryDays": 3650
+      },
+      "clauses": [
+        {
+          "clauseId": "tdap_pregnancy_each_pregnancy",
+          "priority": 5,
+          "minAgeYears": 10,
+          "requireRiskTagsAny": [
+            "PREGNANT"
+          ],
+          "minDaysSinceLastDose": 270,
+          "reasons": [
+            "Tdap is recommended during each pregnancy; model trimester timing as additional tags if you want more precision."
+          ]
+        },
+        {
+          "clauseId": "tdap_once_in_adolescence_or_adulthood",
+          "priority": 10,
+          "minAgeYears": 7,
+          "requireDosesLessThan": 1,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1
+          },
+          "reasons": [
+            "People 7+ should receive at least one Tdap dose if they have never had Tdap documented."
+          ]
+        },
+        {
+          "clauseId": "tdap_booster_every_10_years",
+          "priority": 20,
+          "minAgeYears": 7,
+          "requireDosesAtLeast": 1,
+          "minDaysSinceLastDose": 3650,
+          "requiredDosesOverride": 1,
+          "seriesOverride": {
+            "dosesRequiredDefault": 1,
+            "repeatEveryDays": 3650
+          },
+          "reasons": [
+            "A tetanus/diphtheria/pertussis booster is typically due every ~10 years (simplified as Tdap)."
+          ]
+        }
+      ],
+      "notes": "In real practice, Td/Tdap choices can depend on wound management and prior series; this is a simplified “Tdap now if never had it; otherwise every 10 years” model."
+    },
+    {
+      "vaccineKey": "TDAP_IPV",
+      "displayName": "Tdap-IPV (preschool booster: Tdap + polio)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 1
+      },
+      "clauses": [
+        {
+          "clauseId": "tdap_ipv_preschool_booster",
+          "priority": 10,
+          "minAgeYears": 4,
+          "maxAgeYears": 7,
+          "requireDosesLessThan": 1,
+          "reasons": [
+            "Routine preschool booster around age 4–6 uses Tdap-IPV."
+          ]
+        },
+        {
+          "clauseId": "tdap_ipv_catchup_when_polio_booster_needed",
+          "priority": 20,
+          "minAgeYears": 4,
+          "requireRiskTagsAny": [
+            "POLIO_CATCHUP_NEEDS_BOOSTER"
+          ],
+          "requireDosesLessThan": 1,
+          "reasons": [
+            "Catch-up schedules may use Tdap-IPV when a polio booster is required (set POLIO_CATCHUP_NEEDS_BOOSTER)."
+          ]
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "vaccineKey": "TD",
+      "displayName": "Tetanus + Diphtheria (Td) — discontinued for publicly funded programs",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 0
+      },
+      "clauses": [],
+      "notes": "Manitoba’s eligibility page notes Td is discontinued; use Tdap instead."
+    },
+    {
+      "vaccineKey": "DTaP_IPV",
+      "displayName": "DTaP-IPV — discontinued for publicly funded programs",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 0
+      },
+      "clauses": [],
+      "notes": "Manitoba’s eligibility page notes DTaP-IPV is discontinued; use Tdap-IPV for the preschool booster."
+    },
+    {
+      "vaccineKey": "VAR",
+      "displayName": "Varicella (chickenpox)",
+      "aliasesForDoseCounting": [],
+      "series": {
+        "dosesRequiredDefault": 2,
+        "doseMilestones": [
+          {
+            "doseNumber": 1,
+            "earliestAgeMonths": 12,
+            "latestAgeMonths": 15
+          },
+          {
+            "doseNumber": 2,
+            "earliestAgeMonths": 48,
+            "latestAgeMonths": 72,
+            "minIntervalDays": 90
+          }
+        ],
+        "minIntervalDaysDefault": 90
+      },
+      "clauses": [
+        {
+          "clauseId": "var_specialist_directed",
+          "priority": 5,
+          "requireRiskTagsAny": [
+            "VARICELLA_SPECIALIST_APPROVED",
+            "CCMB_SCHEDULE"
+          ],
+          "forbidRiskTagsAny": [
+            "PREGNANT",
+            "VARICELLA_IMMUNE"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Some higher-risk patients may receive varicella under specialist direction; model this as a tag."
+          ]
+        },
+        {
+          "clauseId": "var_childhood_routine",
+          "priority": 10,
+          "minAgeMonths": 12,
+          "maxAgeYears": 13,
+          "forbidRiskTagsAny": [
+            "PREGNANT",
+            "VARICELLA_IMMUNE",
+            "IMMUNOCOMPROMISED"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "doseMilestones": [
+              {
+                "doseNumber": 1,
+                "earliestAgeMonths": 12,
+                "latestAgeMonths": 15
+              },
+              {
+                "doseNumber": 2,
+                "earliestAgeMonths": 48,
+                "latestAgeMonths": 72,
+                "minIntervalDays": 90
+              }
+            ],
+            "minIntervalDaysDefault": 90
+          },
+          "reasons": [
+            "Routine varicella vaccination is offered to susceptible children (under 13) with 2 doses."
+          ]
+        },
+        {
+          "clauseId": "var_age_13_plus_susceptible",
+          "priority": 20,
+          "minAgeYears": 13,
+          "forbidRiskTagsAny": [
+            "PREGNANT",
+            "VARICELLA_IMMUNE",
+            "IMMUNOCOMPROMISED"
+          ],
+          "requireDosesLessThan": 2,
+          "requiredDosesOverride": 2,
+          "seriesOverride": {
+            "dosesRequiredDefault": 2,
+            "minIntervalDaysDefault": 28
+          },
+          "reasons": [
+            "Susceptible people age 13+ may be eligible for 2 varicella doses (contraindications apply)."
+          ]
+        }
+      ],
+      "notes": "Varicella is a live vaccine. In real practice, pregnancy and many immunocompromising conditions are contraindications; keep those as forbidRiskTagsAny unless a specialist-approved path exists."
+    }
   ]
 }
