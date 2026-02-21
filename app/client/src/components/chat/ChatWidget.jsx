@@ -5,16 +5,16 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const SUGGESTIONS = [
-  "Why is HPV overdue?",
-  "What happens if I miss a dose?",
-  "Explain Tdap in simple terms",
+  "What vaccines have I received in the past?",
+  "When is my next vaccine due?",
+  "What vaccines am I eligible for?",
 ];
 
 export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Hi! Ask me about vaccine due dates, clinic locations, or what to do next.",
+      text: "Hi! I'm your assistant. Ask me about your vaccine schedules or history.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -22,41 +22,34 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
 
   const endRef = useRef(null);
 
-  const disclaimer = useMemo(
-    () => "This is not medical advice. For personal guidance, consult a clinician.",
-    []
-  );
+  const scrollToBottom = () => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  // ✅ Always scroll to latest message
   useEffect(() => {
-    // small timeout so DOM updates first
-    const t = setTimeout(() => {
-      endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, 0);
-    return () => clearTimeout(t);
-  }, [messages.length, loading]);
+    scrollToBottom();
+  }, [messages, loading]);
 
   async function send(text) {
     const trimmed = (text || "").trim();
     if (!trimmed || loading) return;
 
-    // optimistic user message
     setMessages((m) => [...m, { role: "user", text: trimmed }]);
     setInput("");
     setLoading(true);
 
     try {
       const res = await api.chat(profileId, trimmed, { profile, eligibility });
-      const answerText =
-        (res && typeof res === "object" && "answer" in res ? res.answer : res) || "";
+      const answerText = (res?.answer || res) || "I couldn't generate a response.";
+      
       setMessages((m) => [
         ...m,
-        { role: "assistant", text: String(answerText || "No response.") },
+        { role: "assistant", text: String(answerText) },
       ]);
     } catch (e) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", text: e?.message || "Chat failed." },
+        { role: "assistant", text: "⚠️ Connection error. Please try again." },
       ]);
     } finally {
       setLoading(false);
@@ -65,57 +58,65 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
 
   return (
     <div style={styles.card}>
-      
-
+      {/* Suggestions Section */}
       <div style={styles.suggestions}>
         {SUGGESTIONS.map((s) => (
           <button
             key={s}
-            style={{ ...styles.chip, opacity: loading ? 0.6 : 1 }}
+            style={styles.chip}
             onClick={() => send(s)}
             disabled={loading}
-            type="button"
-            title={s}
           >
             {s}
           </button>
         ))}
       </div>
 
+      {/* Chat History */}
       <div style={styles.chatBox}>
         {messages.map((m, idx) => {
           const isUser = m.role === "user";
           return (
             <div
-              key={`${m.role}-${idx}`}
+              key={idx}
               style={{
-                ...styles.bubble,
-                alignSelf: isUser ? "flex-end" : "flex-start",
-                background: isUser ? "#111" : "#fff",
-                color: isUser ? "#fff" : "#111",
-                border: isUser ? "1px solid #111" : "1px solid #eee",
+                ...styles.messageWrapper,
+                flexDirection: isUser ? "row-reverse" : "row",
               }}
             >
-              <div style={styles.markdown}>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {String(m.text || "")}
-                </ReactMarkdown>
+              {!isUser && <div style={styles.avatar}>Q</div>}
+              <div
+                style={{
+                  ...styles.bubble,
+                  backgroundColor: isUser ? "#007AFF" : "#E9E9EB",
+                  color: isUser ? "#fff" : "#000",
+                  borderRadius: isUser ? "18px 18px 2px 18px" : "18px 18px 18px 2px",
+                }}
+              >
+                <div style={styles.markdown}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {m.text}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           );
         })}
 
-        {loading ? (
-          <div style={{ fontSize: 12, opacity: 0.65 }}>Assistant is typing…</div>
-        ) : null}
-
+        {loading && (
+          <div style={styles.loadingContainer}>
+            <div style={styles.avatar}>Q</div>
+            <div style={styles.typingIndicator}>•••</div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
-      <div style={styles.inputRow}>
+      {/* Input Area */}
+      <div style={styles.inputArea}>
         <textarea
-          style={styles.input}
-          placeholder="Ask a question..."
+          style={styles.textarea}
+          placeholder="Ask QDoc..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -128,10 +129,12 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
           rows={1}
         />
         <button
-          style={{ ...styles.button, opacity: loading ? 0.75 : 1 }}
+          style={{
+            ...styles.sendButton,
+            backgroundColor: !input.trim() || loading ? "#ccc" : "#007AFF",
+          }}
           onClick={() => send(input)}
-          disabled={loading}
-          type="button"
+          disabled={!input.trim() || loading}
         >
           Send
         </button>
@@ -151,83 +154,115 @@ const styles = {
     boxShadow: "0 1px 10px rgba(0,0,0,0.04)",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
-    minHeight: 0,
+    height: "500px",
+    width: "100%",
+    maxWidth: "450px",
+    overflow: "hidden",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
   },
-  headerRow: { display: "flex", justifyContent: "space-between", alignItems: "center" },
-
   suggestions: {
+    padding: "12px",
     display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-    color: "#111",
-    marginTop: 1,
-    marginBottom: 2,
+    gap: "8px",
+    overflowX: "auto",
+    borderBottom: "1px solid #f0f0f0",
+    scrollbarWidth: "none", // Hide scrollbar for cleaner look
   },
   chip: {
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid #ddd",
-    background: "#fff",
+    whiteSpace: "nowrap",
+    padding: "6px 14px",
+    borderRadius: "100px",
+    border: "1px solid #007AFF",
+    background: "transparent",
+    color: "#007AFF",
+    fontSize: "12px",
+    fontWeight: "500",
     cursor: "pointer",
-    fontSize: 12,
-    textAlign: "left",
+    transition: "all 0.2s",
   },
-
   chatBox: {
-    height: 260,
+    flex: 1,
+    padding: "16px",
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
-    padding: 10,
-    borderRadius: 12,
-    background: "#fafafa",
-    border: "1px solid #eee",
-    minHeight: 0,
+    gap: "12px",
+    backgroundColor: "#fff",
   },
-
-  bubble: {
-    maxWidth: "85%",
-    padding: "10px 12px",
-    borderRadius: 14,
-    fontSize: 14,
-    lineHeight: 1.35,
-    // ✅ prevent invisible/overflowing text
-    whiteSpace: "pre-wrap",
-    overflowWrap: "anywhere",
-    wordBreak: "break-word",
+  messageWrapper: {
+    display: "flex",
+    alignItems: "flex-end",
+    gap: "8px",
+    marginBottom: "4px",
   },
-
-  inputRow: { display: "flex", gap: 10, marginTop: 2 },
-
-  // textarea styled like input
-  input: {
-    flex: 1,
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1px solid #ddd",
-    color: "#111",
-    resize: "none",
-    fontFamily: "inherit",
-    fontSize: 14,
-    lineHeight: 1.25,
-    maxHeight: 120,
-    overflowY: "auto",
-  },
-
-  button: {
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1px solid #111",
-    background: "#111",
+  avatar: {
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    backgroundColor: "#007AFF",
     color: "#fff",
+    fontSize: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "bold",
+    flexShrink: 0,
+  },
+  bubble: {
+    padding: "10px 16px",
+    maxWidth: "75%",
+    fontSize: "14px",
+    lineHeight: "1.5",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+  },
+  loadingContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  typingIndicator: {
+    background: "#E9E9EB",
+    padding: "8px 16px",
+    borderRadius: "18px",
+    fontSize: "12px",
+    color: "#8E8E93",
+  },
+  inputArea: {
+    padding: "16px",
+    borderTop: "1px solid #f0f0f0",
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+  },
+  textarea: {
+    flex: 1,
+    border: "1px solid #E9E9EB",
+    borderRadius: "20px",
+    padding: "10px 16px",
+    fontSize: "14px",
+    resize: "none",
+    outline: "none",
+    backgroundColor: "#F2F2F7",
+    maxHeight: "100px",
+  },
+  sendButton: {
+    border: "none",
+    color: "#fff",
+    padding: "8px 16px",
+    borderRadius: "20px",
+    fontWeight: "600",
     cursor: "pointer",
-    fontWeight: 800,
-    minWidth: 76,
+    fontSize: "14px",
+    transition: "background 0.2s",
   },
-
+  disclaimer: {
+    fontSize: "10px",
+    textAlign: "center",
+    color: "#8E8E93",
+    padding: "0 16px 12px 16px",
+    margin: 0,
+  },
   markdown: {
-    fontSize: 14,
-  },
+    "& p": { margin: 0 },
+  }
 };

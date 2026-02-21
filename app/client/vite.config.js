@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5001",
+        target: "http://localhost:5002",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/q-doc-challenge/us-central1/api"),
       },
