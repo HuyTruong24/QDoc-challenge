@@ -30,6 +30,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/vax-history"
+            element={
+              <ProtectedRoute>
+                <ClinicHome />
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ClinicHome />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/clinic"
