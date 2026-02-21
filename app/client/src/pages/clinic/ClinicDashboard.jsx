@@ -1,13 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuthContext } from "../../context/AuthContext"; // ✅ add this
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-  Timestamp,
-} from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 
 function startOfDay(d = new Date()) {
@@ -68,8 +61,6 @@ function statusBadgeStyle(status) {
 export default function ClinicDashboard({ daysAheadDefault = 7 }) {
   const { user, userDoc, authLoading, userDocLoading } = useAuthContext();
 
-  const clinicId = userDoc?.clinicId || user?.uid;
-
   const [daysAhead, setDaysAhead] = useState(daysAheadDefault);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -78,80 +69,103 @@ export default function ClinicDashboard({ daysAheadDefault = 7 }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setError("");
+  setError("");
 
-    // Wait for auth/doc to load before yelling “missing clinicId”
-    if (authLoading || userDocLoading) {
-      setLoading(true);
-      return;
-    }
+  if (authLoading || userDocLoading) {
+    setLoading(true);
+    return;
+  }
 
-    if (!clinicId) {
+  if (!user) {
+    setLoading(false);
+    setRows([]);
+    setError("Not logged in.");
+    return;
+  }
+
+  // Optional: gate UI to clinic admins
+  if (userDoc?.role !== "clinic_admin") {
+    setLoading(false);
+    setRows([]);
+    setError("Not authorized (clinic_admin required).");
+    return;
+  }
+
+  setLoading(true);
+
+  const ruleQ = query(
+    collection(db, "ruleEngineResult"),
+    orderBy("updatedAt", "desc")
+  );
+
+  const unsub = onSnapshot(
+    ruleQ,
+    (snap) => {
+      const all = [];
+
+      snap.forEach((doc) => {
+        const data = doc.data() || {};
+        const uid = data.uid || doc.id;
+        const items = Array.isArray(data.result) ? data.result : [];
+
+        for (const it of items) {
+          all.push({
+            id: `${uid}_${it.vaccineKey ?? ""}_${it.nextDoseNumber ?? ""}`, // stable key
+            userId: uid,
+            vaccineKey: it.vaccineKey,
+            displayName: it.displayName,
+            status: it.status,
+            dueDate: it.dueDate,
+            lastDoseDate: it.lastDoseDate,
+            nextDoseNumber: it.nextDoseNumber,
+            remainingDoses: it.remainingDoses,
+            requiredDoses: it.requiredDoses,
+            takenDoses: it.takenDoses,
+          });
+        }
+      });
+
+      // Only show what matters (optional)
+      const filtered = all.filter(
+        (r) => r.status === "OVERDUE" || r.status === "DUE_SOON"
+      );
+
+      setRows(filtered);
+      setLoading(false);
+    },
+    (err) => {
       setLoading(false);
       setRows([]);
-      setError("Missing clinicId (not logged in).");
-      return;
+      setError(err?.message || "Failed to load ruleEngineResult.");
     }
+  );
 
-    setLoading(true);
+  return () => unsub();
+}, [authLoading, userDocLoading, user, userDoc?.role]);
 
-    const from = Timestamp.fromDate(startOfDay(new Date()));
-    const to = Timestamp.fromDate(
-      addDays(startOfDay(new Date()), Math.max(1, Number(daysAhead) || 7) + 1)
-    );
-
-    const q = query(
-      collection(db, "appointments"),
-      where("clinicId", "==", clinicId),
-      where("scheduledAt", ">=", from),
-      where("scheduledAt", "<", to),
-      orderBy("scheduledAt", "asc")
-    );
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const next = snap.docs.map((doc) => {
-          const data = doc.data() || {};
-          return {
-            id: doc.id,
-            patientId: data.patientId || "",
-            patientName: data.patientName || "Unknown Patient",
-            scheduledAt: data.scheduledAt || null,
-            reason: data.reason || "",
-            status: data.status || "scheduled",
-          };
-        });
-        setRows(next);
-        setLoading(false);
-      },
-      (err) => {
-        setLoading(false);
-        setRows([]);
-        setError(err?.message || "Failed to load appointments.");
-      }
-    );
-
-    return () => unsub();
-  }, [clinicId, daysAhead, authLoading, userDocLoading]);
+    
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (
-        statusFilter !== "all" &&
-        String(r.status || "").toLowerCase() !== statusFilter
-      ) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        String(r.patientName || "").toLowerCase().includes(q) ||
-        String(r.patientId || "").toLowerCase().includes(q) ||
-        String(r.reason || "").toLowerCase().includes(q)
-      );
-    });
-  }, [rows, search, statusFilter]);
+  const q = search.trim().toLowerCase();
+
+  return rows.filter((r) => {
+    if (
+      statusFilter !== "all" &&
+      String(r.status || "").toLowerCase() !== statusFilter
+    ) {
+      return false;
+    }
+
+    if (!q) return true;
+
+    return (
+      String(r.userId || "").toLowerCase().includes(q) ||
+      String(r.displayName || "").toLowerCase().includes(q) ||
+      String(r.vaccineKey || "").toLowerCase().includes(q) ||
+      String(r.status || "").toLowerCase().includes(q)
+    );
+  });
+}, [rows, search, statusFilter]);
 
   return (
     <div style={styles.page}>
@@ -241,15 +255,15 @@ export default function ClinicDashboard({ daysAheadDefault = 7 }) {
                   <tr key={r.id} style={styles.tr}>
                     <td style={styles.td}>
                       <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                        {r.patientName}
+                        {r.displayName}
                       </div>
-                      {r.patientId ? (
+                      {r.userId ? (
                         <div style={{ fontSize: 12, color: "#64748b" }}>
-                          ID: {r.patientId}
+                          ID: {r.userId}
                         </div>
                       ) : null}
                     </td>
-                    <td style={styles.td}>{formatWhen(r.scheduledAt)}</td>
+                    <td style={styles.td}>{formatWhen(r.dueDate)}</td>
                     <td style={styles.td}>{r.reason || "—"}</td>
                     <td style={styles.td}>
                       <span
