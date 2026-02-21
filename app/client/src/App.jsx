@@ -8,7 +8,7 @@ import { AuthProvider } from "./context/AuthContext";
 import Profile from "./pages/profile/Profile";
 import Dashboard from "./pages/dashboard/Dashboard";
 import VaccinationHistory from "./pages/vaccination/VaccinationHistory";
-
+import VaccineEligibility from "./components/VaccineEligibility";
 function ClinicHome() {
   return <div style={{ padding: 16 }}>Clinic Dashboard</div>;
 }
@@ -46,6 +46,10 @@ function App() {
             <Route
               path="/vaccination-history"
               element={<VaccinationHistory />}
+            />
+            <Route
+              path="/vaccination-eligibility"
+              element={<VaccineEligibility />}
             />
 
             <Route

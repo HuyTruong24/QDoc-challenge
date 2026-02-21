@@ -4,6 +4,8 @@ import { CgProfile } from "react-icons/cg";
 import { FaHistory } from "react-icons/fa";
 import { CgHome } from 'react-icons/cg';
 import { FaTimes } from "react-icons/fa";
+import { TbVaccineBottle } from "react-icons/tb";
+
 
 const SIDEBAR_WIDTH = 260;
 
@@ -38,6 +40,9 @@ function SideNav ({ isOpen, onClose }) {
         </MenuItem>
         <MenuItem icon={<FaHistory />} component={<Link to="/vaccination-history" />}>
           Vax History
+        </MenuItem>
+         <MenuItem icon={<TbVaccineBottle />} component={<Link to="/vaccination-eligibility" />}>
+          Vax Eligibility
         </MenuItem>
         <MenuItem icon={<CgProfile />} component={<Link to="/profile" />}>
           Profile
