@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { Link } from "react-router-dom";
 import { db } from "../../firebase";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -52,6 +53,71 @@ function toVaccineArray(value) {
   }
 
   return [];
+}
+
+function Field({ label, children }) {
+  return (
+    <label style={{ display: "grid", gap: 6 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#334155" }}>{label}</div>
+      {children}
+    </label>
+  );
+}
+
+function Input(props) {
+  return (
+    <input
+      {...props}
+      style={{
+        width: "100%",
+        boxSizing: "border-box",
+        borderRadius: 14,
+        border: "1px solid rgba(15,23,42,0.12)",
+        padding: "10px 12px",
+        outline: "none",
+        background: "white",
+        boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
+        fontSize: 14,
+        color: "#0f172a",
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.border = "1px solid rgba(15,23,42,0.25)";
+        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(15,23,42,0.06)";
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.border = "1px solid rgba(15,23,42,0.12)";
+        e.currentTarget.style.boxShadow = "0 1px 0 rgba(2,6,23,0.04)";
+      }}
+    />
+  );
+}
+
+function Select(props) {
+  return (
+    <select
+      {...props}
+      style={{
+        width: "100%",
+        boxSizing: "border-box",
+        borderRadius: 14,
+        border: "1px solid rgba(15,23,42,0.12)",
+        padding: "10px 12px",
+        outline: "none",
+        background: "white",
+        boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
+        fontSize: 14,
+        color: "#0f172a",
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.border = "1px solid rgba(15,23,42,0.25)";
+        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(15,23,42,0.06)";
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.border = "1px solid rgba(15,23,42,0.12)";
+        e.currentTarget.style.boxShadow = "0 1px 0 rgba(2,6,23,0.04)";
+      }}
+    />
+  );
 }
 
 function Profile() {
@@ -173,6 +239,7 @@ function Profile() {
       const chronicDiseases = form.chronicDiseases
         .map((item) => item.trim())
         .filter(Boolean);
+
       const vaccinationHistory = form.vaccinationHistory
         .map((item) => ({
           vaccineName: item.vaccineName.trim(),
@@ -197,6 +264,7 @@ function Profile() {
         },
         { merge: true }
       );
+
       setStatus("Profile saved.");
     } catch (err) {
       setError(err?.message || "Failed to save profile");
@@ -206,157 +274,493 @@ function Profile() {
   }
 
   if (loading) {
-    return <main style={{ padding: 24 }}>Loading profile...</main>;
+    return (
+      <div style={styles.page}>
+        <div style={styles.topbar}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={styles.logo}>P</div>
+            <div>
+              <div style={styles.topTitle}>Profile</div>
+              <div style={styles.topSub}>Loading your information…</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.layout}>
+          <div style={styles.card}>
+            <div style={styles.infoBox}>Loading profile...</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <main className="pt-24 px-6 max-w-4xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-6">Patient Profile Input</h2>
-
-      <form onSubmit={onSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
-        <section>
-          <h3 className="font-semibold text-lg mb-4">Demographics</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="patientName"
-              value={form.patientName}
-              onChange={onChange}
-              placeholder="Name of patient"
-              className="border rounded px-4 py-2 w-full"
-              required
-            />
-            <input
-              type="tel"
-              name="phoneNumber"
-              value={form.phoneNumber}
-              onChange={onChange}
-              placeholder="Phone number"
-              className="border rounded px-4 py-2 w-full"
-              required
-            />
+    <div style={styles.page}>
+      {/* Top Bar */}
+      <div style={styles.topbar}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={styles.logo}>P</div>
+          <div>
+            <div style={styles.topTitle}>Patient Profile</div>
+            <div style={styles.topSub}>Manage personal and vaccination details</div>
           </div>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-lg mb-4">Date of Birth and Gender</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="date"
-              name="dateOfBirth"
-              value={form.dateOfBirth}
-              onChange={onChange}
-              className="border rounded px-4 py-2 w-full"
-              required
-            />
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={onChange}
-              className="border rounded px-4 py-2 w-full"
-              required
-            >
-              <option value="" disabled>
-                Select gender
-              </option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-lg mb-4">List of Chronic Diseases</h3>
-          <div className="space-y-3">
-            {form.chronicDiseases.map((disease, index) => (
-              <div key={`disease-${index}`} className="flex gap-2">
-                <input
-                  type="text"
-                  value={disease}
-                  onChange={(e) => onChronicDiseaseChange(index, e.target.value)}
-                  placeholder={`Chronic disease ${index + 1}`}
-                  className="border rounded px-4 py-2 w-full"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeChronicDisease(index)}
-                  className="border rounded px-3 py-2"
-                  aria-label={`Remove chronic disease ${index + 1}`}
-                >
-                  -
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addChronicDisease}
-              className="border rounded px-3 py-2"
-              aria-label="Add chronic disease"
-            >
-              + Add chronic disease
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-lg mb-4">Vaccination History</h3>
-          <div className="space-y-3">
-            {form.vaccinationHistory.map((vaccine, index) => (
-              <div key={`vaccine-${index}`} className="grid grid-cols-1 md:grid-cols-12 gap-2">
-                <input
-                  type="text"
-                  value={vaccine.vaccineName}
-                  onChange={(e) =>
-                    onVaccinationFieldChange(index, "vaccineName", e.target.value)
-                  }
-                  placeholder="Vaccine name"
-                  className="border rounded px-4 py-2 md:col-span-7"
-                />
-                <input
-                  type="date"
-                  value={vaccine.date}
-                  onChange={(e) => onVaccinationFieldChange(index, "date", e.target.value)}
-                  className="border rounded px-4 py-2 md:col-span-4"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeVaccinationRow(index)}
-                  className="border rounded px-3 py-2 md:col-span-1"
-                  aria-label={`Remove vaccine record ${index + 1}`}
-                >
-                  -
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addVaccinationRow}
-              className="border rounded px-3 py-2"
-              aria-label="Add vaccine record"
-            >
-              + Add vaccine record
-            </button>
-          </div>
-        </section>
-
-        {(status || error) && (
-          <div style={{ color: error ? "crimson" : "green" }}>{error || status}</div>
-        )}
-
-        <div className="pt-4">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
-          >
-            {saving ? "Saving..." : "Save Profile"}
-          </button>
         </div>
-      </form>
-    </main>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Link to="/vaccination-history" style={styles.secondaryBtnLink}>
+            View history
+          </Link>
+        </div>
+      </div>
+
+      <div style={styles.layout}>
+        <section style={{ minWidth: 0 }}>
+          <form onSubmit={onSubmit} style={styles.card}>
+            <div style={styles.cardHeader}>
+              <div>
+                <div style={styles.cardTitle}>Patient Profile Input</div>
+                <div style={styles.cardSub}>
+                  Fill in your demographics, chronic diseases, and vaccine history.
+                </div>
+              </div>
+              <button type="submit" disabled={saving} style={styles.primaryBtn}>
+                {saving ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+
+            {/* Demographics */}
+            <div style={styles.section}>
+              <div style={styles.sectionTitle}>Demographics</div>
+              <div style={styles.sectionSub}>Basic patient information.</div>
+
+              <div style={styles.formGrid2}>
+                <Field label="Patient name">
+                  <Input
+                    type="text"
+                    name="patientName"
+                    value={form.patientName}
+                    onChange={onChange}
+                    placeholder="Name of patient"
+                    required
+                  />
+                </Field>
+
+                <Field label="Phone number">
+                  <Input
+                    type="tel"
+                    name="phoneNumber"
+                    value={form.phoneNumber}
+                    onChange={onChange}
+                    placeholder="Phone number"
+                    required
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* DOB + Gender */}
+            <div style={styles.section}>
+              <div style={styles.sectionTitle}>Date of Birth and Gender</div>
+              <div style={styles.sectionSub}>Used for eligibility and reminders.</div>
+
+              <div style={styles.formGrid2}>
+                <Field label="Date of birth">
+                  <Input
+                    type="date"
+                    name="dateOfBirth"
+                    value={form.dateOfBirth}
+                    onChange={onChange}
+                    required
+                  />
+                </Field>
+
+                <Field label="Gender">
+                  <Select
+                    name="gender"
+                    value={form.gender}
+                    onChange={onChange}
+                    required
+                  >
+                    <option value="" disabled>
+                      Select gender
+                    </option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </Select>
+                </Field>
+              </div>
+            </div>
+
+            {/* Chronic Diseases */}
+            <div style={styles.section}>
+              <div style={styles.sectionHeaderRow}>
+                <div>
+                  <div style={styles.sectionTitle}>List of Chronic Diseases</div>
+                  <div style={styles.sectionSub}>
+                    Add one condition per row (optional).
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addChronicDisease}
+                  style={styles.secondaryBtn}
+                  aria-label="Add chronic disease"
+                >
+                  + Add disease
+                </button>
+              </div>
+
+              <div style={styles.rowsWrap}>
+                {form.chronicDiseases.map((disease, index) => (
+                  <div key={`disease-${index}`} style={styles.inlineRow}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Input
+                        type="text"
+                        value={disease}
+                        onChange={(e) => onChronicDiseaseChange(index, e.target.value)}
+                        placeholder={`Chronic disease ${index + 1}`}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeChronicDisease(index)}
+                      style={styles.iconDangerBtn}
+                      aria-label={`Remove chronic disease ${index + 1}`}
+                      title="Remove"
+                    >
+                      −
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Vaccination History */}
+            <div style={styles.section}>
+              <div style={styles.sectionHeaderRow}>
+                <div>
+                  <div style={styles.sectionTitle}>Vaccination History</div>
+                  <div style={styles.sectionSub}>
+                    Add vaccine names and dates you have received.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addVaccinationRow}
+                  style={styles.secondaryBtn}
+                  aria-label="Add vaccine record"
+                >
+                  + Add vaccine
+                </button>
+              </div>
+
+              <div style={styles.rowsWrap}>
+                {form.vaccinationHistory.map((vaccine, index) => (
+                  <div key={`vaccine-${index}`} style={styles.vaccineRow}>
+                    <div style={{ minWidth: 0 }}>
+                      <Field label={index === 0 ? "Vaccine name" : `Vaccine ${index + 1}`}>
+                        <Input
+                          type="text"
+                          value={vaccine.vaccineName}
+                          onChange={(e) =>
+                            onVaccinationFieldChange(index, "vaccineName", e.target.value)
+                          }
+                          placeholder="Vaccine name"
+                        />
+                      </Field>
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <Field label="Date">
+                        <Input
+                          type="date"
+                          value={vaccine.date}
+                          onChange={(e) =>
+                            onVaccinationFieldChange(index, "date", e.target.value)
+                          }
+                        />
+                      </Field>
+                    </div>
+
+                    <div style={styles.vaccineRemoveWrap}>
+                      <button
+                        type="button"
+                        onClick={() => removeVaccinationRow(index)}
+                        style={styles.iconDangerBtn}
+                        aria-label={`Remove vaccine record ${index + 1}`}
+                        title="Remove"
+                      >
+                        −
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Status / Error */}
+            {error ? <div style={styles.errorBox}>{error}</div> : null}
+            {!error && status ? <div style={styles.successBox}>{status}</div> : null}
+
+            {/* Footer action */}
+            <div style={styles.footerActions}>
+              <button type="submit" disabled={saving} style={styles.primaryBtn}>
+                {saving ? "Saving..." : "Save Profile"}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
   );
 }
 
 export default Profile;
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f6f7fb",
+    padding: 18,
+    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+  },
+
+  topbar: {
+    maxWidth: 1200,
+    margin: "0 auto 14px",
+    padding: "14px 14px",
+    borderRadius: 18,
+    border: "1px solid rgba(15,23,42,0.08)",
+    background: "rgba(255,255,255,0.85)",
+    backdropFilter: "blur(10px)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    boxShadow: "0 10px 30px rgba(2,6,23,0.06)",
+  },
+
+  logo: {
+    height: 38,
+    width: 38,
+    borderRadius: 14,
+    background: "#0f172a",
+    color: "white",
+    display: "grid",
+    placeItems: "center",
+    fontWeight: 900,
+  },
+
+  topTitle: {
+    fontSize: 18,
+    fontWeight: 950,
+    color: "#0f172a",
+    lineHeight: 1.1,
+  },
+
+  topSub: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2,
+  },
+
+  layout: {
+    maxWidth: 1000,
+    margin: "0 auto",
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 14,
+    alignItems: "start",
+  },
+
+  card: {
+    background: "#fff",
+    border: "1px solid rgba(15,23,42,0.08)",
+    borderRadius: 18,
+    padding: 14,
+    boxShadow: "0 10px 30px rgba(2,6,23,0.06)",
+    display: "grid",
+    gap: 14,
+  },
+
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    paddingBottom: 12,
+    borderBottom: "1px solid rgba(15,23,42,0.06)",
+    marginBottom: 2,
+    flexWrap: "wrap",
+  },
+
+  cardTitle: {
+    fontWeight: 950,
+    color: "#0f172a",
+    fontSize: 18,
+  },
+
+  cardSub: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 4,
+  },
+
+  section: {
+    border: "1px solid rgba(15,23,42,0.06)",
+    borderRadius: 16,
+    padding: 12,
+    background: "rgba(255,255,255,0.7)",
+    display: "grid",
+    gap: 12,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: 900,
+    color: "#0f172a",
+  },
+
+  sectionSub: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748b",
+  },
+
+  sectionHeaderRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+
+  formGrid2: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 12,
+  },
+
+  rowsWrap: {
+    display: "grid",
+    gap: 10,
+  },
+
+  inlineRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+  },
+
+  vaccineRow: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1.7fr) minmax(0, 1fr) auto",
+    gap: 10,
+    alignItems: "end",
+    border: "1px solid rgba(15,23,42,0.05)",
+    borderRadius: 14,
+    padding: 10,
+    background: "rgba(248,250,252,0.55)",
+  },
+
+  vaccineRemoveWrap: {
+    display: "grid",
+    placeItems: "end",
+    paddingBottom: 1,
+  },
+
+  primaryBtn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid #0f172a",
+    background: "#0f172a",
+    color: "white",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+
+  secondaryBtn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(15,23,42,0.12)",
+    background: "white",
+    color: "#0f172a",
+    fontWeight: 800,
+    cursor: "pointer",
+    boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
+    whiteSpace: "nowrap",
+  },
+
+  secondaryBtnLink: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid rgba(15,23,42,0.12)",
+    background: "white",
+    color: "#0f172a",
+    fontWeight: 800,
+    cursor: "pointer",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
+    whiteSpace: "nowrap",
+  },
+
+  iconDangerBtn: {
+    minWidth: 40,
+    height: 40,
+    borderRadius: 12,
+    border: "1px solid rgba(239,68,68,0.18)",
+    background: "rgba(254,242,242,0.9)",
+    color: "#b91c1c",
+    fontWeight: 900,
+    fontSize: 18,
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    lineHeight: 1,
+  },
+
+  infoBox: {
+    borderRadius: 12,
+    border: "1px solid rgba(15,23,42,0.08)",
+    background: "rgba(248,250,252,0.9)",
+    padding: "12px 14px",
+    color: "#334155",
+    fontWeight: 600,
+    fontSize: 14,
+  },
+
+  errorBox: {
+    color: "#991b1b",
+    background: "rgba(254,226,226,0.7)",
+    border: "1px solid rgba(239,68,68,0.2)",
+    borderRadius: 12,
+    padding: "10px 12px",
+    fontSize: 13,
+    fontWeight: 600,
+  },
+
+  successBox: {
+    color: "#166534",
+    background: "rgba(220,252,231,0.75)",
+    border: "1px solid rgba(34,197,94,0.2)",
+    borderRadius: 12,
+    padding: "10px 12px",
+    fontSize: 13,
+    fontWeight: 600,
+  },
+
+  footerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    paddingTop: 2,
+  },
+};
