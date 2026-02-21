@@ -1,5 +1,5 @@
 // app/client/src/components/chat/ChatWidget.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { api } from "../../api/api.js";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,6 +9,10 @@ const SUGGESTIONS = [
   "When is my next vaccine due?",
   "What vaccines am I eligible for?",
 ];
+
+// ✅ define a real disclaimer (you were referencing an undefined variable before)
+const DISCLAIMER_TEXT =
+  "This assistant is for informational purposes only and does not replace medical advice.";
 
 export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
   const [messages, setMessages] = useState([
@@ -40,12 +44,9 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
 
     try {
       const res = await api.chat(profileId, trimmed, { profile, eligibility });
-      const answerText = (res?.answer || res) || "I couldn't generate a response.";
-      
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", text: String(answerText) },
-      ]);
+      const answerText = res?.answer ?? res ?? "I couldn't generate a response.";
+
+      setMessages((m) => [...m, { role: "assistant", text: String(answerText) }]);
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -61,12 +62,7 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
       {/* Suggestions Section */}
       <div style={styles.suggestions}>
         {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            style={styles.chip}
-            onClick={() => send(s)}
-            disabled={loading}
-          >
+          <button key={s} style={styles.chip} onClick={() => send(s)} disabled={loading}>
             {s}
           </button>
         ))}
@@ -94,9 +90,7 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
                 }}
               >
                 <div style={styles.markdown}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {m.text}
-                  </ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
                 </div>
               </div>
             </div>
@@ -140,7 +134,8 @@ export default function ChatWidget({ profileId = "p1", profile, eligibility }) {
         </button>
       </div>
 
-      <div style={{ fontSize: 12, opacity: 0.65, marginTop: 8, color: "#111" }}>{disclaimer}</div>
+      {/* ✅ disclaimer fixed */}
+      <div style={styles.disclaimer}>{DISCLAIMER_TEXT}</div>
     </div>
   );
 }
@@ -151,14 +146,14 @@ const styles = {
     border: "1px solid #eee",
     borderRadius: 14,
     padding: 14,
-    boxShadow: "0 1px 10px rgba(0,0,0,0.04)",
+    // ✅ FIX: keep only ONE boxShadow
+    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
     display: "flex",
     flexDirection: "column",
     height: "500px",
     width: "100%",
     maxWidth: "450px",
     overflow: "hidden",
-    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
   },
   suggestions: {
     padding: "12px",
@@ -166,7 +161,7 @@ const styles = {
     gap: "8px",
     overflowX: "auto",
     borderBottom: "1px solid #f0f0f0",
-    scrollbarWidth: "none", // Hide scrollbar for cleaner look
+    scrollbarWidth: "none", // Hide scrollbar (Firefox)
   },
   chip: {
     whiteSpace: "nowrap",
@@ -260,9 +255,11 @@ const styles = {
     textAlign: "center",
     color: "#8E8E93",
     padding: "0 16px 12px 16px",
-    margin: 0,
+    marginTop: 8,
   },
   markdown: {
-    "& p": { margin: 0 },
-  }
+    // Inline styles don’t support "& p" like CSS-in-JS frameworks do,
+    // but keeping this harmless. If you want real markdown spacing control,
+    // use a CSS file or add components prop in ReactMarkdown.
+  },
 };
