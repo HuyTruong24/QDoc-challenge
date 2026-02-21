@@ -243,7 +243,7 @@ export default function Dashboard() {
                 <select
                   value={days}
                   onChange={(e) => setDays(Number(e.target.value))}
-                  style={styles.dropdown} // ✅ now has black text
+                  style={styles.dropdown}
                   aria-label="Select time window"
                 >
                   {DAY_OPTIONS.map((d) => (
@@ -329,7 +329,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ✅ Equal-height cards (no phone input in SMS) */}
+          {/* Reminder cards */}
           <div style={styles.reminderRow}>
             {/* Email */}
             <div style={styles.emailCard}>
@@ -540,7 +540,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Floating chat button */}
+      {/* ── Floating chat button ── */}
       <button
         style={{
           ...styles.chatFab,
@@ -553,10 +553,12 @@ export default function Dashboard() {
         onClick={() => setChatOpen(true)}
         aria-label="Open chat"
       >
-        <FaRobot />
+        {/* Glow ring */}
+        <span style={styles.chatFabGlow} aria-hidden="true" />
+        <FaRobot style={{ fontSize: 30, position: "relative", zIndex: 1 }} />
       </button>
 
-      {/* Chat modal */}
+      {/* ── Chat panel (full-height side drawer) ── */}
       <div
         style={{
           ...styles.chatModalWrap,
@@ -565,36 +567,72 @@ export default function Dashboard() {
         }}
         aria-hidden={!chatOpen}
       >
+        {/* Backdrop */}
         <div style={styles.chatBackdrop} onClick={() => setChatOpen(false)} />
 
+        {/* Panel slides in from the right, full viewport height */}
         <div
           style={{
             ...styles.chatWindow,
-            transform: chatOpen ? "translateY(0px)" : "translateY(10px)",
+            transform: chatOpen ? "translateX(0)" : "translateX(100%)",
             opacity: chatOpen ? 1 : 0,
           }}
           role="dialog"
           aria-modal="true"
           aria-label="Health Assistant"
         >
+          {/* Header */}
           <div style={styles.chatHeader}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {/* Large robot avatar */}
               <div style={styles.chatIcon}>
-                <FaRobot />
+                <FaRobot style={{ fontSize: 26 }} />
               </div>
               <div>
-                <div style={{ color: "white", fontWeight: 850 }}>Health Assistant</div>
-                <div style={{ color: "rgba(219,234,254,0.95)", fontSize: 12 }}>Always here to help</div>
+                <div style={{ color: "white", fontWeight: 850, fontSize: 16, letterSpacing: "-0.01em" }}>
+                  Health Assistant
+                </div>
+                <div style={{ color: "rgba(147,197,253,0.90)", fontSize: 12, fontWeight: 600 }}>
+                  Always here to help
+                </div>
               </div>
             </div>
 
             <button style={styles.chatClose} onClick={() => setChatOpen(false)} aria-label="Close chat">
-              ✕
+              <span style={styles.chatCloseIcon} aria-hidden="true">×</span>
             </button>
           </div>
 
+          {/* Body */}
           <div style={styles.chatBody}>
-            <ChatWidget profileId={user.uid} profile={chatContext} eligibility={userRuleEngineResult} />
+            {/* Scoped style overrides – forces black text & white bg inside ChatWidget */}
+            <style>{`
+              .chat-body-inner,
+              .chat-body-inner * {
+                color: #0f172a !important;
+              }
+              .chat-body-inner input,
+              .chat-body-inner textarea {
+                color: #0f172a !important;
+                background: #f8fafc !important;
+              }
+              .chat-body-inner input::placeholder,
+              .chat-body-inner textarea::placeholder {
+                color: #94a3b8 !important;
+              }
+              /* Make the widget itself fill full height */
+              .chat-body-inner,
+              .chat-body-inner > div:first-child {
+                height: 100% !important;
+                max-height: 100% !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+              }
+            `}</style>
+            <div className="chat-body-inner" style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+              <ChatWidget profileId={user.uid} profile={chatContext} eligibility={userRuleEngineResult} />
+            </div>
           </div>
         </div>
       </div>
@@ -675,7 +713,6 @@ const styles = {
     backdropFilter: "blur(12px)",
   },
   dropdownLabel: { fontSize: 13, color: "#475569", fontWeight: 700 },
-  // ✅ FIX: make "7 days" black
   dropdown: { border: "none", outline: "none", background: "transparent", fontWeight: 800, color: "#0f172a", cursor: "pointer" },
 
   summaryStrip: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginBottom: 14 },
@@ -726,13 +763,12 @@ const styles = {
   statusPill: { padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 800, lineHeight: 1, whiteSpace: "nowrap" },
   infoRow: { padding: "16px 14px", color: "#64748b", fontSize: 14, fontWeight: 600 },
 
-  // ✅ Equal-height reminder cards
   reminderRow: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 18,
     justifyContent: "center",
-    alignItems: "stretch", // ✅ stretch so both have same height
+    alignItems: "stretch",
   },
 
   emailCard: {
@@ -743,7 +779,7 @@ const styles = {
     padding: 26,
     boxShadow: "0 14px 40px rgba(2,6,23,0.06)",
     backdropFilter: "blur(14px)",
-    display: "flex", // ✅ allow button/footers to align
+    display: "flex",
     flexDirection: "column",
   },
 
@@ -800,55 +836,104 @@ const styles = {
 
   helperText: { marginTop: 14, textAlign: "center", fontSize: 13, color: "#64748b", fontWeight: 700 },
 
+  // ── Chat FAB ── bigger icon + subtle glow ring
   chatFab: {
     position: "fixed",
     right: 28,
     bottom: 28,
-    width: 64,
-    height: 64,
+    width: 68,
+    height: 68,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.35)",
-    background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
+    border: "1.5px solid rgba(96,165,250,0.40)",
+    background: "linear-gradient(145deg, #1e3a5f 0%, #1d4ed8 50%, #0f172a 100%)",
     color: "white",
-    fontSize: 22,
     cursor: "pointer",
-    boxShadow: "0 22px 55px rgba(2,6,23,0.22)",
+    boxShadow: "0 0 0 6px rgba(37,99,235,0.12), 0 22px 55px rgba(2,6,23,0.30)",
     zIndex: 60,
-    transition: "transform 120ms ease, filter 120ms ease",
+    transition: "transform 120ms ease, filter 120ms ease, box-shadow 120ms ease",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "visible",
   },
-  chatFabHover: { transform: "translateY(-1px)", filter: "brightness(1.02)" },
+  chatFabHover: {
+    transform: "translateY(-2px) scale(1.04)",
+    boxShadow: "0 0 0 10px rgba(37,99,235,0.16), 0 28px 60px rgba(2,6,23,0.36)",
+    filter: "brightness(1.08)",
+  },
+  // invisible pseudo-glow (real glow via boxShadow above)
+  chatFabGlow: {
+    position: "absolute",
+    inset: -4,
+    borderRadius: 999,
+    background: "transparent",
+    pointerEvents: "none",
+  },
 
-  chatModalWrap: { position: "fixed", inset: 0, zIndex: 70, transition: "opacity 160ms ease" },
-  chatBackdrop: { position: "absolute", inset: 0, background: "rgba(2,6,23,0.20)", backdropFilter: "blur(6px)" },
+  // ── Chat modal wrapper ──
+  chatModalWrap: { position: "fixed", inset: 0, zIndex: 70, transition: "opacity 200ms ease" },
+  chatBackdrop: {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(2,6,23,0.45)",
+    backdropFilter: "blur(8px)",
+  },
 
+  // ── Full-height side panel ──
   chatWindow: {
     position: "absolute",
-    right: 28,
-    bottom: 28,
-    width: "min(400px, 92vw)",
-    height: "min(600px, 82vh)",
-    background: "white",
-    borderRadius: 24,
-    overflow: "hidden",
-    border: "1px solid rgba(15,23,42,0.10)",
-    boxShadow: "0 22px 70px rgba(2,6,23,0.20)",
+    top: 0,
+    right: 0,
+    bottom: 0,                        // stretches to bottom of viewport
+    width: "min(420px, 94vw)",
+    background: "#0a0f1e",            // deep navy-black
+    borderLeft: "1px solid rgba(59,130,246,0.20)",
+    boxShadow: "-20px 0 80px rgba(2,6,23,0.45)",
     display: "flex",
     flexDirection: "column",
-    transition: "transform 160ms ease, opacity 160ms ease",
+    transition: "transform 220ms cubic-bezier(0.32,0,0.22,1), opacity 200ms ease",
+    overflow: "hidden",
   },
 
+  // Header: dark gradient with blue accent line on bottom
   chatHeader: {
-    padding: "16px 16px",
-    background: "linear-gradient(90deg, #3b82f6, #2563eb)",
+    padding: "20px 20px",
+    background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1d4ed8 100%)",
+    borderBottom: "2px solid rgba(59,130,246,0.45)",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
+    flexShrink: 0,
   },
-  chatIcon: { width: 40, height: 40, borderRadius: 999, background: "rgba(255,255,255,0.18)", display: "grid", placeItems: "center", fontSize: 18, color: "white" },
-  chatClose: { width: 34, height: 34, borderRadius: 999, border: "none", background: "rgba(255,255,255,0.18)", color: "white", cursor: "pointer", fontWeight: 900 },
-  chatBody: { padding: 12, background: "rgba(248,250,252,0.78)", flex: 1, overflow: "auto" },
+  chatIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 999,
+    background: "linear-gradient(145deg, #1d4ed8, #2563eb)",
+    border: "1.5px solid rgba(96,165,250,0.35)",
+    display: "grid",
+    placeItems: "center",
+    color: "white",
+    boxShadow: "0 0 18px rgba(37,99,235,0.45)",
+    flexShrink: 0,
+  },
+  chatCloseIcon: {
+    color: "rgba(147,197,253,0.90)",
+    fontWeight: 900,
+    fontSize: 20,
+    lineHeight: 1,
+    display: "block",
+    transform: "translateY(-1px)", // ✅ adjust: try -2px or 0px if needed
+  },
+
+  // Body: fills remaining panel height, no padding so ChatWidget stretches edge-to-edge
+  chatBody: {
+    flex: 1,
+    overflow: "hidden",
+    background: "#ffffff",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,         // required so flex children can shrink/scroll correctly
+  },
 };
