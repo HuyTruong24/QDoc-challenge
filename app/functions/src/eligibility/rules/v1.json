@@ -1,9 +1,0 @@
-{
-  "version": "v1",
-  "vaccines": [
-    { "vaccineKey": "flu",  "displayName": "Influenza (Flu)" },
-    { "vaccineKey": "tdap", "displayName": "Tdap Booster" },
-    { "vaccineKey": "hpv",  "displayName": "HPV" },
-    { "vaccineKey": "hepb", "displayName": "Hepatitis B" }
-  ]
-}
