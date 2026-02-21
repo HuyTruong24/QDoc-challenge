@@ -18,7 +18,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login({ email, password });
-      nav("/patient"); // your main screen
+      nav("/dashboard");
     } catch (e) {
       setErr(e?.message || "Login failed");
     } finally {

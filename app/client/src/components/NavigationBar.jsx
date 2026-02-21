@@ -39,7 +39,7 @@ function SideNav ({ isOpen, onClose }) {
           <MenuItem icon={<CgHome />} component={<Link to="/" />}>
             Dashboard
           </MenuItem>
-          <MenuItem icon={<FaHistory />} component={<Link to="/vax-history" />}>
+          <MenuItem icon={<FaHistory />} component={<Link to="/vaccination-history" />}>
             Vax History
           </MenuItem>
           <MenuItem icon={<CgProfile />} component={<Link to="/profile" />}>

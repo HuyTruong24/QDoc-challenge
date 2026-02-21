@@ -1,49 +1,53 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Layout from './components/Layout' 
-import Dashboard from './pages/dashboard/Dashboard'
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import Login from './pages/auth/Login'
-import Register from './pages/auth/Register'
-import ProtectedRoute from './components/auth/ProtectedRoute'
-import { AuthProvider } from './context/AuthContext'
-import Profile from './pages/Profile'
+import "./App.css";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
+import Profile from "./pages/profile/Profile";
+import Dashboard from "./pages/dashboard/Dashboard";
+import VaccinationHistory from "./pages/vaccination/VaccinationHistory";
 
-// placeholder pages
-function PatientHome() { return <div style={{ padding: 16 }}>Patient Home</div>; }
-function ClinicHome() { return <div style={{ padding: 16 }}>Clinic Dashboard</div>; }
+function ClinicHome() {
+  return <div style={{ padding: 16 }}>Clinic Dashboard</div>;
+}
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/patient" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
           <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/patient"
+            element={<Navigate to="/profile" replace />}
+          />
+
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             }
           />
+
           <Route
-            path="/vax-history"
+            path="/vaccination-history"
             element={
               <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-           <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
+                <VaccinationHistory />
               </ProtectedRoute>
             }
           />
