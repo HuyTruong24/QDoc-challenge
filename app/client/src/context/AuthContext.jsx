@@ -10,11 +10,14 @@ import {
   setPersistence,
   inMemoryPersistence,
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const [userDoc, setUserDoc] = useState(null);
+  const [userDocLoading, setUserDocLoading] = useState(false);
+
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -27,12 +30,29 @@ export function AuthProvider({ children }) {
 
   // ✅ Keep React state in sync with Firebase Auth state
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u || null);
-      setAuthLoading(false);
-    });
-    return () => unsub();
-  }, []);
+  const unsub = onAuthStateChanged(auth, async (u) => {
+    setUser(u || null);
+    setAuthLoading(false);
+
+    if (!u) {
+      setUserDoc(null);
+      return;
+    }
+
+    setUserDocLoading(true);
+    try {
+      const snap = await getDoc(doc(db, "users", u.uid));
+      setUserDoc(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+    } catch (err) {
+      console.error("Failed to fetch user doc:", err);
+      setUserDoc(null);
+    } finally {
+      setUserDocLoading(false);
+    }
+  });
+
+  return () => unsub();
+}, []);
 
   // ✅ Signup: do NOT block UI on Firestore write
   async function signup({ email, password, displayName }) {
@@ -63,25 +83,32 @@ export function AuthProvider({ children }) {
   }
 
   async function login({ email, password }) {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
     return cred.user;
+  } catch (err) {
+    console.error("Login failed:", err.code, err.message);
+    throw err;
   }
+}
 
   async function logout() {
     await signOut(auth);
   }
 
   const value = useMemo(
-    () => ({
-      user,
-      authLoading,
-      isAuthed: !!user,
-      signup,
-      login,
-      logout,
-    }),
-    [user, authLoading]
-  );
+  () => ({
+    user,
+    userDoc,
+    authLoading,
+    userDocLoading,
+    isAuthed: !!user,
+    signup,
+    login,
+    logout,
+  }),
+  [user, userDoc, authLoading, userDocLoading]
+);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
