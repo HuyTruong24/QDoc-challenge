@@ -89,6 +89,12 @@ export default function Login() {
               Register
             </Link>
           </div>
+          <div style={styles.footerText}>
+            Are you a clinic?{" "}
+            <Link to="/clinic-login" style={styles.link}>
+              Login
+            </Link>
+          </div>
         </div>
       </div>
     </div>

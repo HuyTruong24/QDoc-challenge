@@ -6,6 +6,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    match /clinics/{clinicId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
+
     match /ruleEngineResult/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
