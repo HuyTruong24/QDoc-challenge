@@ -73,7 +73,9 @@ function NavigationBar({ isOpen, onClose, sidebarWidth = 260 }) {
             title="Close navigation"
             type="button"
           >
-            <FaTimes />
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <FaTimes />
+            </span>
           </button>
         </div>
 
@@ -186,10 +188,13 @@ const styles = {
     width: 38,
     height: 38,
     cursor: "pointer",
-    display: "grid",
-    placeItems: "center",
+    display: "flex",              // ✅ was grid
+    alignItems: "center",         // ✅ center vertically
+    justifyContent: "center",     // ✅ center horizontally
     boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
     flexShrink: 0,
+    lineHeight: 1,               // ✅ prevents icon baseline weirdness
+    padding: 0,                  // ✅ avoid default button padding
   },
 
   navList: {
@@ -230,7 +235,7 @@ const styles = {
   },
 
   navIconActive: {
-    color: "#0f172a",
+    color: "#eb0a0a",
   },
 
   footer: {

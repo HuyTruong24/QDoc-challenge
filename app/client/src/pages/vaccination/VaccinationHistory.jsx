@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useAuth } from "../../hooks/useAuth";
+import { VACCINES } from "../../../../contracts/constants";
 
 function normalizeVaccinationHistory(value) {
   if (!Array.isArray(value)) return [];
@@ -10,17 +11,19 @@ function normalizeVaccinationHistory(value) {
   return value
     .map((item) => {
       if (typeof item === "string") {
-        return { vaccineName: item.trim(), date: "" };
+        const key = item.trim();
+        return { vaccineKey: key, vaccineName: VACCINES[key] || key, date: "" };
       }
+
       if (item && typeof item === "object") {
-        return {
-          vaccineName: String(item.vaccineName ?? item.name ?? "").trim(),
-          date: String(item.date ?? item.dateAdministered ?? "").trim(),
-        };
+        const key = String(item.vaccineKey ?? item.vaccineName ?? item.name ?? "").trim();
+        const date = String(item.date ?? item.dateAdministered ?? "").trim();
+        return { vaccineKey: key, vaccineName: VACCINES[key] || key, date };
       }
-      return { vaccineName: "", date: "" };
+
+      return { vaccineKey: "", vaccineName: "", date: "" };
     })
-    .filter((item) => item.vaccineName || item.date);
+    .filter((item) => item.vaccineKey || item.date);
 }
 
 export default function VaccinationHistory() {
@@ -28,6 +31,8 @@ export default function VaccinationHistory() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { userRuleEngineResult } = useAuth();
+  
 
   useEffect(() => {
     async function loadVaccinations() {
@@ -44,7 +49,7 @@ export default function VaccinationHistory() {
         }
 
         const data = snap.data();
-        const vaccinationHistory = data?.profile?.vaccinationHistory;
+        const vaccinationHistory = data?.vaccinationHistory ?? data?.profile?.vaccinationHistory;
         setRows(normalizeVaccinationHistory(vaccinationHistory));
       } catch (err) {
         setError(err?.message || "Failed to load vaccination history");

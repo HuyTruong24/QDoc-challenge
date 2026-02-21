@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { VACCINES, RISK_TAGS } from "../../../../contracts/constants";
+import { computeAndStoreRuleEngineResult } from "../../backend/parseProfileCallEngine.js";
+
+//const { setUserRuleEngineResult } = useAuth(); 
 
 const INITIAL_FORM = {
   patientName: "",
@@ -171,6 +174,8 @@ function Field({ label, children }) {
 }
 
 function Input(props) {
+  const isDate = props.type === "date";
+
   return (
     <input
       {...props}
@@ -185,14 +190,26 @@ function Input(props) {
         boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
         fontSize: 14,
         color: "#0f172a",
+        ...(isDate ? { cursor: "pointer" } : null),
+      }}
+      onClick={(e) => {
+        if (isDate && typeof e.currentTarget.showPicker === "function") {
+          e.currentTarget.showPicker();
+        }
+        props.onClick?.(e);
       }}
       onFocus={(e) => {
         e.currentTarget.style.border = "1px solid rgba(15,23,42,0.25)";
         e.currentTarget.style.boxShadow = "0 0 0 3px rgba(15,23,42,0.06)";
+        if (isDate && typeof e.currentTarget.showPicker === "function") {
+          e.currentTarget.showPicker();
+        }
+        props.onFocus?.(e);
       }}
       onBlur={(e) => {
         e.currentTarget.style.border = "1px solid rgba(15,23,42,0.12)";
         e.currentTarget.style.boxShadow = "0 1px 0 rgba(2,6,23,0.04)";
+        props.onBlur?.(e);
       }}
     />
   );
@@ -230,7 +247,7 @@ function Select(props) {
 }
 
 function Profile() {
-  const { user } = useAuth();
+  const { user, userDoc, setUserRuleEngineResult, setUserDoc } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -238,67 +255,56 @@ function Profile() {
   const [error, setError] = useState("");
   const [existingUserDoc, setExistingUserDoc] = useState(null);
 
+
   useEffect(() => {
-    async function loadProfile() {
-      if (!user?.uid) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (!snap.exists()) {
-          setExistingUserDoc(null);
-          setLoading(false);
-          return;
-        }
-
-        const data = snap.data();
-        setExistingUserDoc(data);
-
-        // Backward-compatible loader:
-        // 1) old nested shape: data.profile.*
-        // 2) new top-level shape: data.*
-        const profile = data?.profile || data || {};
-
-        const patientNameFromNewShape = [profile.firstName, profile.lastName]
-          .map((v) => String(v || "").trim())
-          .filter(Boolean)
-          .join(" ");
-
-        const loadedRiskTags = toStringArray(
-          profile.riskTags ?? profile.chronicDiseases ?? profile.chronicConditions
-        ).map(coerceRiskTagKey);
-
-        const loadedVaccines = toVaccineArray(profile.vaccinationHistory).map((v) => ({
-          ...v,
-          vaccineName: coerceVaccineKey(v.vaccineName),
-        }));
-
-        setForm({
-          patientName:
-            profile.patientName ||
-            patientNameFromNewShape ||
-            data.displayName ||
-            "",
-          dateOfBirth: profile.dateOfBirth || "",
-          gender: dbGenderToUi(profile.gender || ""),
-          chronicDiseases: loadedRiskTags.length ? loadedRiskTags : [""],
-          vaccinationHistory: loadedVaccines.length
-            ? loadedVaccines
-            : [{ vaccineName: "", date: "" }],
-          phoneNumber: profile.phoneNumber || "",
-          postalCode: profile.postalCode || "",
-        });
-      } catch (err) {
-        setError(err?.message || "Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
+    if (!user?.uid) {
+      setLoading(false);
+      return;
     }
 
-    loadProfile();
-  }, [user?.uid]);
+    // Wait until userDoc is available (AuthContext fetches it)
+    if (!userDoc) {
+      setLoading(false);
+      return;
+    }
+
+    setExistingUserDoc(userDoc);
+
+    // Backward-compatible loader:
+    const profile = userDoc?.profile || userDoc || {};
+
+    const patientNameFromNewShape = [profile.firstName, profile.lastName]
+      .map((v) => String(v || "").trim())
+      .filter(Boolean)
+      .join(" ");
+
+    const loadedRiskTags = toStringArray(
+      profile.riskTags ?? profile.chronicDiseases ?? profile.chronicConditions
+    ).map(coerceRiskTagKey);
+
+    const loadedVaccines = toVaccineArray(profile.vaccinationHistory).map((v) => ({
+      ...v,
+      vaccineName: coerceVaccineKey(v.vaccineName),
+    }));
+
+    setForm({
+      patientName:
+        profile.patientName ||
+        patientNameFromNewShape ||
+        userDoc.displayName ||
+        "",
+      dateOfBirth: profile.dateOfBirth || "",
+      gender: dbGenderToUi(profile.gender || ""),
+      chronicDiseases: loadedRiskTags.length ? loadedRiskTags : [""],
+      vaccinationHistory: loadedVaccines.length
+        ? loadedVaccines
+        : [{ vaccineName: "", date: "" }],
+      phoneNumber: profile.phoneNumber || "",
+      postalCode: profile.postalCode || "",
+    });
+
+    setLoading(false);
+  }, [user?.uid, userDoc]);
 
   function onChange(e) {
     const { name, value } = e.target;
@@ -366,9 +372,12 @@ function Profile() {
     });
   }
 
+
   async function onSubmit(e) {
     e.preventDefault();
     if (!user?.uid || saving) return;
+
+    // const nav = useNavigate();
 
     setSaving(true);
     setStatus("");
@@ -420,6 +429,8 @@ function Profile() {
         displayName: form.patientName.trim(), // optional helper for UI/auth convenience
       };
 
+
+
       // only set createdAt if missing
       if (!existingUserDoc?.createdAt) {
         payloadToSave.createdAt = serverTimestamp();
@@ -428,11 +439,31 @@ function Profile() {
       // Save in NEW top-level schema
       await setDoc(doc(db, "users", user.uid), payloadToSave, { merge: true });
 
+
       // keep local snapshot in sync enough for next save
       setExistingUserDoc((prev) => ({
         ...(prev || {}),
         ...payloadToSave,
       }));
+
+
+      let result;
+      try {
+        result = await computeAndStoreRuleEngineResult({ db, uid: user.uid, payloadToSave });
+
+        // ✅ store globally (all pages can use it)
+        setUserRuleEngineResult({ uid: user.uid, result });
+
+        // ✅ optional: keep userDoc in context up to date too
+        setUserDoc((prev) => ({ ...(prev || { id: user.uid }), ...payloadToSave }));
+      } catch (err) {
+        console.error("Failed to compute and store rule engine result:", err);
+        setError("Rule engine evaluation failed. Please try again.");
+        setSaving(false);
+        return;
+      }
+
+      // setUserRuleEngineResult(res); // ✅ now it’s global immediately
 
       setStatus("Profile saved.");
     } catch (err) {
@@ -440,6 +471,7 @@ function Profile() {
     } finally {
       setSaving(false);
     }
+
   }
 
   if (loading) {
@@ -668,7 +700,7 @@ function Profile() {
 
                           {/* Keep unknown stored values visible */}
                           {vaccine.vaccineName &&
-                          !Object.prototype.hasOwnProperty.call(VACCINES, vaccine.vaccineName) ? (
+                            !Object.prototype.hasOwnProperty.call(VACCINES, vaccine.vaccineName) ? (
                             <option value={vaccine.vaccineName}>
                               {vaccine.vaccineName} (unknown)
                             </option>

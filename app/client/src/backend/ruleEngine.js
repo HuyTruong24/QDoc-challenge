@@ -1,4 +1,4 @@
-import { RULE_SET } from "./eligibility/rules/ruleSet.js";
+import { RULE_SET } from "./ruleSet.js";
 
 const PROFILES = {
   // 1) Teen: HPV dose 2 overdue
@@ -1066,7 +1066,7 @@ function evaluateVaccine(rule, p, doseIndex, options = {}) {
  *  - Within same status: earliest dueDate first (nulls last)
  *******************************/
 
-export function evaluateAllVaccines(profile, pre, options = {}) {
+function evaluateAllVaccines(profile, pre, options = {}) {
   if (!pre || typeof pre !== "object" || !Array.isArray(pre.vaccineRules)) {
     throw new Error("evaluateAllVaccines: pre must be a preprocessed ruleset (run preprocessRuleSet first)");
   }
@@ -1147,14 +1147,16 @@ const results = evaluateAllVaccines(profile, preReal)
     
 
 // Print only useful fields (and reasons for the chatbot)
-console.log(
-  results.map(r => ({
-    vaccineKey: r.vaccineKey,
-    status: r.status,
-    dueDate: r.dueDate,
-    remainingDoses: r.remainingDoses,
-    nextDoseNumber: r.nextDoseNumber,
-    matchedClauseId: r.matchedClauseId,
-    reasons: r.reasons
-  }))
-);
+// console.log(
+//   results.map(r => ({
+//     vaccineKey: r.vaccineKey,
+//     status: r.status,
+//     dueDate: r.dueDate,
+//     remainingDoses: r.remainingDoses,
+//     nextDoseNumber: r.nextDoseNumber,
+//     matchedClauseId: r.matchedClauseId,
+//     reasons: r.reasons
+//   }))
+// );
+
+export {preprocessRuleSet, evaluateAllVaccines};

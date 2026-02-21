@@ -55,25 +55,30 @@ const styles = {
     position: "relative",
   },
 
-  menuButton: {
-    position: "fixed",
-    top: 14,
-    left: 14,
-    zIndex: 50,
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    border: "1px solid rgba(15,23,42,0.10)",
-    background: "rgba(255,255,255,0.92)",
-    backdropFilter: "blur(8px)",
-    boxShadow: "0 10px 24px rgba(2,6,23,0.10)",
-    cursor: "pointer",
-    display: "grid",
-    placeItems: "center",
-    color: "#0f172a",
-  },
-
-  menuIcon: {
-    fontSize: 26,
-  },
+ menuButton: {
+  position: "fixed",
+  top: 14,
+  left: 14,
+  zIndex: 50,
+  width: 46,
+  height: 46,
+  borderRadius: 14,
+  border: "1px solid rgba(15,23,42,0.10)",
+  background: "rgba(255,255,255,0.92)",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 10px 24px rgba(2,6,23,0.10)",
+  cursor: "pointer",
+  display: "flex",          // ✅ was grid
+  alignItems: "center",     // ✅
+  justifyContent: "center", // ✅
+  color: "#0f172a",
+  padding: 0,               // ✅ prevent default button padding
+  lineHeight: 1,            // ✅ prevent baseline weirdness
+},
+menuIcon: {
+  fontSize: 26,
+  display: "block",         // ✅ removes inline baseline spacing
+  lineHeight: 1,
+  transform: "translateY(1px)", // ✅ tiny nudge; remove if perfect without it
+},
 };
