@@ -9,6 +9,7 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import Profile from './pages/Profile'
 
 // placeholder pages
 function PatientHome() { return <div style={{ padding: 16 }}>Patient Home</div>; }
@@ -34,7 +35,7 @@ function App() {
             path="/vax-history"
             element={
               <ProtectedRoute>
-                <ClinicHome />
+                <Profile />
               </ProtectedRoute>
             }
           />
@@ -42,7 +43,7 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <ClinicHome />
+                <Profile />
               </ProtectedRoute>
             }
           />
