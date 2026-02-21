@@ -1,49 +1,55 @@
+require("dotenv").config();
 const functions = require("firebase-functions");
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
-app.use(cors({ origin: true }));
+
+// Put JSON first or after cors — both fine
 app.use(express.json());
 
+const corsMiddleware = cors({
+  origin: ["http://localhost:5173"], // be explicit for dev
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+});
+
+// Your routes
 app.post("/chat", async (req, res) => {
   try {
     const { message, context } = req.body;
 
-    // Get key safely (prefer env var; fallback to Firebase config)
-    const apiKey =
-      process.env.GEMINI_API_KEY ||
-      (functions.config().gemini && functions.config().gemini.key);
+    const apiKey = process.env.GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 
-    if (!apiKey) {
-      return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
-    }
+    if (!apiKey) return res.status(500).json({ error: "Missing GEMINI_API_KEY" });
 
-    // ESM-only SDK inside CommonJS file:
-    const { GoogleGenAI } = await import("@google/genai"); // official SDK :contentReference[oaicite:2]{index=2}
+    const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
 
-    // Use YOUR model string here (e.g., "gemini-3-flash-preview" shown in docs) :contentReference[oaicite:3]{index=3}
-    const model = req.body.model || "YOUR_MODEL_NAME";
+    const prompt = `
+You are a helpful assistant.
 
-    const prompt = [
-      "You are a helpful assistant.",
-      context ? `Context (JSON): ${JSON.stringify(context)}` : "",
-      `User: ${message}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+Context:
+${JSON.stringify(context, null, 2)}
+
+User:
+${message}
+`;
 
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
     });
 
-    res.json({ text: response.text });
+    return res.json({ reply: response.text });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: String(err?.message || err) });
+    return res.status(500).json({ error: err.message });
   }
 });
 
-exports.api = functions.https.onRequest(app);
+// ✅ Wrap the entire app with CORS at the function boundary
+exports.api = functions.https.onRequest((req, res) => {
+  corsMiddleware(req, res, () => app(req, res));
+});
