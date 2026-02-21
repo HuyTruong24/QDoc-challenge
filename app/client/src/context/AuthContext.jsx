@@ -8,43 +8,81 @@ import {
   onAuthStateChanged,
   updateProfile,
   setPersistence,
-  inMemoryPersistence,
+  browserLocalPersistence,   // ✅ add
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const [userDoc, setUserDoc] = useState(null);
+  const [userDocLoading, setUserDocLoading] = useState(false);
+
+  // ✅ NEW: rule engine result state
+  const [userRuleEngineResult, setUserRuleEngineResult] = useState(null);
+  const [userRuleEngineResultLoading, setUserRuleEngineResultLoading] = useState(false);
+
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // ✅ Make auth non-persistent (logout on refresh / dev restart)
   useEffect(() => {
-    setPersistence(auth, inMemoryPersistence).catch((err) => {
-      console.error("Failed to set auth persistence:", err);
-    });
-  }, []);
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.error("Failed to set auth persistence:", err);
+  });
+}, []);
 
-  // ✅ Keep React state in sync with Firebase Auth state
+  // ✅ Helper to refresh both docs on demand
+  async function refreshComputed(uid) {
+    if (!uid) return;
+
+    setUserDocLoading(true);
+    setUserRuleEngineResultLoading(true);
+
+    try {
+      const [userSnap, ruleSnap] = await Promise.all([
+        getDoc(doc(db, "users", uid)),
+        getDoc(doc(db, "ruleEngineResult", uid)),
+      ]);
+
+      setUserDoc(userSnap.exists() ? { id: userSnap.id, ...userSnap.data() } : null);
+      setUserRuleEngineResult(ruleSnap.exists() ? ruleSnap.data() : null);
+    } catch (err) {
+      console.error("Failed to refresh user/rule docs:", err);
+      setUserDoc(null);
+      setUserRuleEngineResult(null);
+    } finally {
+      setUserDocLoading(false);
+      setUserRuleEngineResultLoading(false);
+    }
+  }
+
+  // ✅ Keep React state in sync with Firebase Auth state (covers login + signup)
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u || null);
       setAuthLoading(false);
+
+      if (!u) {
+        setUserDoc(null);
+        setUserRuleEngineResult(null);
+        setUserDocLoading(false);
+        setUserRuleEngineResultLoading(false);
+        return;
+      }
+
+      await refreshComputed(u.uid);
     });
+
     return () => unsub();
   }, []);
 
-  // ✅ Signup: do NOT block UI on Firestore write
   async function signup({ email, password, displayName }) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-    // Optional: store name in Firebase Auth profile
     if (displayName) {
       await updateProfile(cred.user, { displayName });
     }
 
-    // Firestore write is best-effort (non-blocking)
-    // If it fails (rules, network, firestore not enabled), it won't break signup UX.
     setDoc(
       doc(db, "users", cred.user.uid),
       {
@@ -59,12 +97,20 @@ export function AuthProvider({ children }) {
       console.error("Firestore user doc write failed:", err);
     });
 
+    // optional: refresh after signup doc write (nice-to-have)
+    // await refreshComputed(cred.user.uid);
+
     return cred.user;
   }
 
   async function login({ email, password }) {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    return cred.user;
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      return cred.user;
+    } catch (err) {
+      console.error("Login failed:", err.code, err.message);
+      throw err;
+    }
   }
 
   async function logout() {
@@ -74,13 +120,29 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       user,
+      userDoc,
+      userRuleEngineResult,
       authLoading,
+      userDocLoading,
+      userRuleEngineResultLoading,
       isAuthed: !!user,
       signup,
       login,
       logout,
+
+      // ✅ expose setters + refresh so Profile.jsx can set immediately after compute
+      setUserDoc,
+      setUserRuleEngineResult,
+      refreshComputed,
     }),
-    [user, authLoading]
+    [
+      user,
+      userDoc,
+      userRuleEngineResult,
+      authLoading,
+      userDocLoading,
+      userRuleEngineResultLoading,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

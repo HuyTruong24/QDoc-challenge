@@ -1,52 +1,70 @@
-import React from 'react'
+import React from "react";
+import { useAuth } from "../hooks/useAuth";
+import { VACCINES } from "../../../contracts/constants";
 
 const STATUS = {
-    UPCOMING: "Upcoming",
-    DUE: "Due",
-    OVERDUE: "Overdue",
-    COMPLETED: "Completed",
-    NOT_ELIGIBLE: "Not Eligible",
+  UPCOMING: "Upcoming",
+  DUE: "Due",
+  OVERDUE: "Overdue",
+  COMPLETED: "Completed",
+  NOT_ELIGIBLE: "Not Eligible",
+};
+
+function coerceArray(result) {
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === "object") return Object.values(result);
+  return [];
 }
-const data =[
-    {
-        id: 1,
-        name: "COVID-19 Vaccine",
-        status: STATUS.DUE,
-        date: "2024-07-01"
-    },
-    {
-        id: 2,
-        name: "Influenza Vaccine",
-        status: STATUS.UPCOMING,
-        date: "2024-10-01"
-    },
-    {
-        id: 3,
-        name: "Hepatitis B Vaccine",           
-        status: STATUS.OVERDUE,
-        date: "2024-05-01"
-    },
-    {
-        id: 4,
-        name: "Tetanus Vaccine",
-        status: STATUS.COMPLETED,
-        date: "2024-01-15"
-    },
-    {
-        id: 5,
-        name: "HPV Vaccine",
-        status: STATUS.NOT_ELIGIBLE,
-        date: null
-    }, 
-    {
-        id: 6,
-        name: "Pneumococcal Vaccine",
-        status: STATUS.DUE,
-        date: "2024-08-15"
-    }
-]
+
+// ✅ classify using engine status + dueDate windows
+function getUiStatus(engineStatus, dueDateStr) {
+  const raw = String(engineStatus || "").toUpperCase();
+
+  if (raw === "NOT_ELIGIBLE") return STATUS.NOT_ELIGIBLE;
+  if (raw === "COMPLETED") return STATUS.COMPLETED;
+  if (raw === "OVERDUE") return STATUS.OVERDUE;
+
+  // If no date, treat as not eligible-ish
+  if (!dueDateStr) return STATUS.NOT_ELIGIBLE;
+
+  const dueDate = new Date(dueDateStr);
+  if (Number.isNaN(dueDate.getTime())) return STATUS.NOT_ELIGIBLE;
+
+  const now = new Date();
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysUntil = Math.ceil((dueDate.getTime() - now.getTime()) / msPerDay);
+
+  if (daysUntil <= 0) return STATUS.DUE;        // due now / today
+  if (daysUntil <= 7) return STATUS.DUE;        // due within 7 days
+  if (daysUntil <= 30) return STATUS.UPCOMING;  // upcoming within 30 days
+
+  return STATUS.UPCOMING; // beyond 30 days: still upcoming (you can change later)
+}
+
 function VaccineEligibility() {
-    const [recrods, setRecords] = React.useState(data)
+  const { userRuleEngineResult } = useAuth();
+
+  const records = React.useMemo(() => {
+    const items = coerceArray(userRuleEngineResult?.result);
+
+    return items
+      .map((item, idx) => {
+        const vaccineKey = String(item?.vaccineKey ?? "").trim();
+        const displayName =
+          VACCINES[vaccineKey] || item?.displayName || vaccineKey || "Unknown vaccine";
+
+        const dueDate = item?.dueDate ?? null;
+
+        return {
+          id: vaccineKey || idx,
+          name: displayName,
+          status: getUiStatus(item?.status, dueDate),
+          date: dueDate,
+        };
+      })
+      .filter((r) => r.name);
+  }, [userRuleEngineResult]);
+
   return (
      <div style={styles.page}>
        <div style={styles.topbar}>
