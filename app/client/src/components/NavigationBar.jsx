@@ -186,7 +186,7 @@ const styles = {
     width: 38,
     height: 38,
     cursor: "pointer",
-    display: "grid",
+    
     placeItems: "center",
     boxShadow: "0 1px 0 rgba(2,6,23,0.04)",
     flexShrink: 0,

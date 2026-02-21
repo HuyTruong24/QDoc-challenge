@@ -68,7 +68,6 @@ const styles = {
     backdropFilter: "blur(8px)",
     boxShadow: "0 10px 24px rgba(2,6,23,0.10)",
     cursor: "pointer",
-    display: "grid",
     placeItems: "center",
     color: "#0f172a",
   },
