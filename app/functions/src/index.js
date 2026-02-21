@@ -100,7 +100,7 @@ app.post("/chat", async (req, res) => {
 
     const contextSummary = summarizeContext(context);
 
-    const systemInstruction = `You are QDoc, a vaccination assistant inside a web app.
+    const systemInstruction = `You are a vaccination assistant inside a web app.
 
 CRITICAL INSTRUCTIONS:
 - You HAVE been securely provided with the patient's actual medical and vaccination records in the "Patient Context" JSON below. 
