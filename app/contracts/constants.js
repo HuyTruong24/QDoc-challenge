@@ -112,3 +112,5 @@ const RISK_TAGS = {
   VETERINARIAN: "Veterinarian",
   WILDLIFE_WORKER: "Wildlife worker"
 };
+
+export {VACCINES, RISK_TAGS};
