@@ -4,6 +4,7 @@ import ChatWidget from "../../components/chat/ChatWidget";
 import { useAuth } from "../../hooks/useAuth";
 import { VACCINES } from "../../../../contracts/constants";
 import { FaRobot } from "react-icons/fa";
+import { syncVaccinesToGoogleCalendar } from "../../utils/googleCalendar";
 
 import emailjs from "@emailjs/browser";
 
@@ -117,6 +118,8 @@ export default function Dashboard() {
   const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [reminderTiming, setReminderTiming] = useState("7 days before");
   const [chatOpen, setChatOpen] = useState(false);
+  const [calendarSyncing, setCalendarSyncing] = useState(false);
+  const [calendarSyncMessage, setCalendarSyncMessage] = useState({ type: "", text: "" });
 
   const profile = userDoc || {};
   const titleName =
@@ -184,6 +187,64 @@ export default function Dashboard() {
     filtered.sort((a, b) => (a.daysUntil ?? 999999) - (b.daysUntil ?? 999999));
     return filtered;
   }, [userRuleEngineResult, days]);
+
+  async function handleCalendarSync() {
+    if (calendarSyncing) return;
+
+    if (!scheduleRows.length) {
+      setCalendarSyncMessage({
+        type: "error",
+        text: `No vaccines to sync in the next ${days} day(s).`,
+      });
+      return;
+    }
+
+    setCalendarSyncing(true);
+    setCalendarSyncMessage({ type: "", text: "" });
+
+    try {
+      const { created, failed } = await syncVaccinesToGoogleCalendar(
+        scheduleRows.map((row) => ({
+          name: row.name,
+          dueDate: row.dueDate,
+          status: row.status,
+        }))
+      );
+
+      if (!failed.length) {
+        setCalendarSyncMessage({
+          type: "success",
+          text: `Synced ${created.length} vaccine event(s) to Google Calendar.`,
+        });
+        return;
+      }
+
+      if (!created.length) {
+        setCalendarSyncMessage({
+          type: "error",
+          text: `Calendar sync failed. ${failed[0]?.reason || "Unknown error."}`,
+        });
+        return;
+      }
+
+      setCalendarSyncMessage({
+        type: "warning",
+        text: `Synced ${created.length} event(s); ${failed.length} failed.`,
+      });
+    } catch (error) {
+      const message = String(error?.message || "");
+      const canceled = message.includes("popup_closed") || message.includes("access_denied");
+
+      setCalendarSyncMessage({
+        type: "error",
+        text: canceled
+          ? "Google sign-in was canceled."
+          : `Calendar sync failed: ${message || "Unknown error."}`,
+      });
+    } finally {
+      setCalendarSyncing(false);
+    }
+  }
 
   if (authLoading || userDocLoading) return <div style={styles.center}>Loading…</div>;
   if (!user) return <div style={styles.center}>Please login.</div>;
@@ -267,6 +328,41 @@ export default function Dashboard() {
                   </div>
                 ))
               )}
+            </div>
+
+            <div style={styles.calendarSyncWrap}>
+              <button
+                type="button"
+                onClick={handleCalendarSync}
+                disabled={calendarSyncing || userRuleEngineResultLoading}
+                style={{
+                  ...styles.calendarSyncBtn,
+                  ...(calendarSyncing || userRuleEngineResultLoading
+                    ? styles.calendarSyncBtnDisabled
+                    : null),
+                }}
+              >
+                {calendarSyncing ? "Syncing..." : "Sync Upcoming to Google Calendar"}
+              </button>
+
+              <div style={styles.calendarSyncHint}>
+                Adds all vaccines shown above as all-day events in your primary Google Calendar.
+              </div>
+
+              {calendarSyncMessage.text ? (
+                <div
+                  style={{
+                    ...styles.calendarSyncStatus,
+                    ...(calendarSyncMessage.type === "success"
+                      ? styles.calendarSyncStatusSuccess
+                      : calendarSyncMessage.type === "warning"
+                      ? styles.calendarSyncStatusWarning
+                      : styles.calendarSyncStatusError),
+                  }}
+                >
+                  {calendarSyncMessage.text}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -599,6 +695,54 @@ const styles = {
     color: "#64748b",
     fontSize: 14,
     fontWeight: 650,
+  },
+
+  calendarSyncWrap: {
+    marginTop: 14,
+    borderTop: "1px solid rgba(15,23,42,0.06)",
+    paddingTop: 14,
+  },
+  calendarSyncBtn: {
+    border: "1px solid rgba(15,23,42,0.12)",
+    background: "white",
+    color: "#0f172a",
+    borderRadius: 12,
+    padding: "10px 14px",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  calendarSyncBtnDisabled: {
+    opacity: 0.65,
+    cursor: "not-allowed",
+  },
+  calendarSyncHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#64748b",
+    fontWeight: 600,
+  },
+  calendarSyncStatus: {
+    marginTop: 10,
+    borderRadius: 10,
+    padding: "9px 11px",
+    fontSize: 12,
+    fontWeight: 700,
+    border: "1px solid transparent",
+  },
+  calendarSyncStatusSuccess: {
+    color: "#166534",
+    background: "rgba(220,252,231,0.65)",
+    borderColor: "rgba(34,197,94,0.25)",
+  },
+  calendarSyncStatusWarning: {
+    color: "#92400e",
+    background: "rgba(254,243,199,0.65)",
+    borderColor: "rgba(245,158,11,0.25)",
+  },
+  calendarSyncStatusError: {
+    color: "#991b1b",
+    background: "rgba(254,226,226,0.7)",
+    borderColor: "rgba(239,68,68,0.25)",
   },
 
   centerRow: { display: "flex", justifyContent: "center" },
