@@ -13,24 +13,33 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div style={styles.appShell}>
       {!isNavBarOpen && (
-        <IoReorderThreeSharp
-          className="text-4xl cursor-pointer fixed top-4 left-4 z-50"
+        <button
+          type="button"
           onClick={toggleSidebar}
-        />
+          aria-label="Open navigation"
+          title="Open navigation"
+          style={styles.menuButton}
+        >
+          <IoReorderThreeSharp style={styles.menuIcon} />
+        </button>
       )}
+
       {isNavBarOpen && (
         <NavigationBar
           isOpen={isNavBarOpen}
           onClose={() => setIsNavBarOpen(false)}
+          sidebarWidth={SIDEBAR_WIDTH}
         />
       )}
+
       <div
         style={{
           marginLeft: isNavBarOpen ? `${SIDEBAR_WIDTH}px` : "0px",
-          transition: "margin-left 0.3s ease-in-out",
+          transition: "margin-left 0.25s ease",
           minHeight: "100vh",
+          background: "#f6f7fb",
         }}
       >
         <Outlet />
@@ -38,3 +47,33 @@ export default function AppLayout() {
     </div>
   );
 }
+
+const styles = {
+  appShell: {
+    minHeight: "100vh",
+    background: "#f6f7fb",
+    position: "relative",
+  },
+
+  menuButton: {
+    position: "fixed",
+    top: 14,
+    left: 14,
+    zIndex: 50,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    border: "1px solid rgba(15,23,42,0.10)",
+    background: "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(8px)",
+    boxShadow: "0 10px 24px rgba(2,6,23,0.10)",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    color: "#0f172a",
+  },
+
+  menuIcon: {
+    fontSize: 26,
+  },
+};
