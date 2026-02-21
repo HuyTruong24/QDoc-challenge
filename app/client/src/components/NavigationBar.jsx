@@ -3,6 +3,7 @@ import { Sidebar } from "react-pro-sidebar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CgProfile, CgHome } from "react-icons/cg";
 import { FaHistory, FaTimes, FaSignOutAlt } from "react-icons/fa";
+import { TbVaccineBottle } from "react-icons/tb";
 import { useAuth } from "../hooks/useAuth"; // <-- adjust if needed
 
 function NavigationBar({ isOpen, onClose, sidebarWidth = 260 }) {
@@ -16,6 +17,7 @@ function NavigationBar({ isOpen, onClose, sidebarWidth = 260 }) {
     { to: "/dashboard", label: "Dashboard", icon: <CgHome /> },
     { to: "/vaccination-history", label: "Vax History", icon: <FaHistory /> },
     { to: "/profile", label: "Profile", icon: <CgProfile /> },
+    { to: "/vaccination-eligibility", label: "Vaccination Eligibility", icon: <TbVaccineBottle /> },
   ];
 
   async function handleSignOut() {
