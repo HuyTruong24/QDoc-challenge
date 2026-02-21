@@ -404,7 +404,7 @@ function Profile() {
                     pattern="[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d"
                     title='Enter postal code in format "R3T 6G8"'
                     required
-                  />
+                  /> 
                 </Field>
 
                 <div />
